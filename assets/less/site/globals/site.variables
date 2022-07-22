@@ -1,0 +1,29 @@
+@import "@less/invenio_app_rdm/variables";
+
+@brandColor: #ff6c0c;
+
+@navbar_background_image: unset;
+@navbar_background_color: #FFF;
+@footerLightColor: @brandColor;
+@footerDarkColor: #444;
+@searchButtonColor: @brandColor;
+
+.outer-navbar a {
+    color: black;
+}
+
+i.fitted.plus.icon.inverted {
+    color: black;
+}
+
+i.fitted.dropdown.icon.inverted {
+    color: black;
+}
+
+.get-started-section {
+    background-color: #444;
+}
+
+.frontpage-title {
+    color: white;
+}
