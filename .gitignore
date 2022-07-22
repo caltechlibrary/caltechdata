@@ -73,3 +73,15 @@ data/.minio.sys
 
 # Celery
 celerybeat-schedule
+
+# OS-specific things to ignore:
+# .............................................................................
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+

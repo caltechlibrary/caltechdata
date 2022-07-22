@@ -1,0 +1,19 @@
+
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+   - family-names: Hucka
+     given-names: Michael
+     orcid: https://orcid.org/0000-0001-9105-5960
+   - family-names: Doiel
+     given-names: Robert
+     orcid: https://orcid.org/0000-0003-0900-6903
+   - family-names: Morrell
+     given-names: Thomas E.
+     orcid: https://orcid.org/0000-0001-9266-5146
+   - family-names: Keswick
+     given-names: Tommy
+     orcid: https://orcid.org/0000-0001-5644-440X
+version: 1.15.0
+title: Caltech Library Software Repository Template
+date-released: 2022-03-25
