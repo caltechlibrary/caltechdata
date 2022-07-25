@@ -1,50 +1,94 @@
-# CaltechDATA
+# CaltechDATA repository using InvenioRDM
 
-Welcome to your InvenioRDM instance.
+This is the source repsository for CaltechDATA, Caltech's Institutional Data
+and Software Repository. The repository is currently migrating to InvenioRDM
+and is a work in progress.
 
-## Getting started
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg?color=orange)](https://choosealicense.com/licenses/bsd-3-clause)
+[![Latest release](https://img.shields.io/github/v/release/caltechlibrary/template.svg?color=b44e88)](https://github.com/caltechlibrary/template/releases)
+[![DOI](https://data.caltech.edu/badge/201106666.svg)](https://data.caltech.edu/badge/latestdoi/201106666)
 
-Run the following commands in order to start your new InvenioRDM instance:
 
-```console
-invenio-cli containerize
-invenio-cli demo --containers
+## Table of contents
+
+* [Introduction](#introduction)
+* [Installation](#installation)
+* [Usage](#usage)
+* [Known issues and limitations](#known-issues-and-limitations)
+* [Getting help](#getting-help)
+* [Contributing](#contributing)
+* [License](#license)
+* [Authors and history](#authors-and-history)
+* [Acknowledgments](#authors-and-acknowledgments)
+
+
+## Introduction
+
+This repository is a GitHub template repository for creating software project repositories at the Caltech Library.  The [associated wiki page](https://github.com/caltechlibrary/template/wiki/Using-this-template-repo) explains how to use the template repository.
+
+This README file is in Markdown format, and is meant to provide a template for README files as well an illustration of what the README file can be expected to look like.  For a software project, this [Introduction](#introduction) section &ndash; which you are presently reading &ndash; should provide background for the project, a brief explanation of what the project is about, and optionally, pointers to resources that can help orient readers.  Ideally, this section should be short.
+
+
+## Installation
+
+Begin this section by mentioning any prerequisites that may be important for users to have before they can use your software.  Examples include hardware and operating system requirements.
+
+Next, provide step-by-step instructions for installing the software, preferably with command examples that can be copy-pasted by readers into their software environments. For example:
+
+```bash
+a command-line command here
 ```
 
-The above commands first builds the application docker image and afterwards
-starts the application and related services (database, Elasticsearch, Redis
-and RabbitMQ). The build and boot process will take some time to complete,
-especially the first time as docker images have to be downloaded during the
-process.
+Sometimes, subsections may be needed for different operating systems or particularly complicated installations.
+ 
 
-Once running, visit https://127.0.0.1 in your browser.
+## Usage
 
-**Note**: The server is using a self-signed SSL certificate, so your browser
-will issue a warning that you will have to by-pass.
+This [Usage](#usage) section would explain more about how to run the software, what kind of behavior to expect, and so on.
 
-## Overview
+### _Basic operation_
 
-Following is an overview of the generated files and folders:
+Begin with the simplest possible example of how to use your software.  Provide example command lines and/or screen images, as appropriate, to help readers understand how the software is expected to be used.  Many readers are likely to look for command lines they can copy-paste directly from your explanations, so it's best to keep that in mind as you write examples.
 
-| Name | Description |
-|---|---|
-| ``Dockerfile`` | Dockerfile used to build your application image. |
-| ``Pipfile`` | Python requirements installed via [pipenv](https://pipenv.pypa.io) |
-| ``Pipfile.lock`` | Locked requirements (generated on first install). |
-| ``app_data`` | Application data such as vocabularies. |
-| ``assets`` | Web assets (CSS, JavaScript, LESS, JSX templates) used in the Webpack build. |
-| ``docker`` | Example configuration for NGINX and uWSGI. |
-| ``docker-compose.full.yml`` | Example of a full infrastructure stack. |
-| ``docker-compose.yml`` | Backend services needed for local development. |
-| ``docker-services.yml`` | Common services for the Docker Compose files. |
-| ``invenio.cfg`` | The Invenio application configuration. |
-| ``logs`` | Log files. |
-| ``static`` | Static files that need to be served as-is (e.g. images). |
-| ``templates`` | Folder for your Jinja templates. |
-| ``.invenio`` | Common file used by Invenio-CLI to be version controlled. |
-| ``.invenio.private`` | Private file used by Invenio-CLI *not* to be version controlled. |
+### _Additional options_
 
-## Documentation
+Some projects need to communicate additional information to users and can benefit from additional sections in the README file.  It's difficult to give specific instructions &ndash; a lot depends on your software, your intended audience, etc.  Use your judgment and ask for feedback from users or colleagues to help figure out what else is worth explaining.
 
-To learn how to configure, customize, deploy and much more, visit
-the [InvenioRDM Documentation](https://inveniordm.docs.cern.ch/).
+
+## Known issues and limitations
+
+In this section, summarize any notable issues and/or limitations of your software.  If none are known yet, this section can be omitted (and don't forget to remove the corresponding entry in the [Table of Contents](#table-of-contents) too); alternatively, you can leave this section in and write something along the lines of "none are known at this time".
+
+
+## Getting help
+
+Inform readers of how they can contact you, or at least how they can report problems they may encounter.  This may simply be a request to use the issue tracker on your repository, but many projects have associated chat or mailing lists, and this section is a good place to mention those.
+
+
+## Contributing
+
+This section is optional; if your repository is for a project that accepts open-source contributions, then this section is where you can mention how people can offer contributions, and point them to your guidelines for contributing.  (If you delete this section, don't forget to remove the corresponding entry in the [Table of Contents](#table-of-contents) too.)
+
+
+## License
+
+Software produced by the Caltech Library is Copyright © 2022 California Institute of Technology.  This software is freely distributed under a BSD/MIT type license.  Please see the [LICENSE](LICENSE) file for more information.
+
+
+## Authors and history
+
+In this section, list the authors and contributors to your software project.  Adding additional notes here about the history of the project can make it more interesting and compelling.  This is also a place where you can acknowledge other contributions to the work and the use of other people's software or tools.
+
+
+## Acknowledgments
+
+This work was funded by the California Institute of Technology Library.
+
+(If this work was also supported by other organizations, acknowledge them here.  In addition, if your work relies on software libraries, or was inspired by looking at other work, it is appropriate to acknowledge this intellectual debt too.)
+
+<div align="center">
+  <br>
+  <a href="https://www.caltech.edu">
+    <img width="100" height="100" src="https://raw.githubusercontent.com/caltechlibrary/template/main/.graphics/caltech-round.png">
+  </a>
+</div>

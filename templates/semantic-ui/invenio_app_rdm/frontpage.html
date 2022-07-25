@@ -1,0 +1,28 @@
+{#
+  Copyright (C) 2019-2020 CERN.
+  Copyright (C) 2019-2020 Northwestern University.
+
+  Invenio App RDM is free software; you can redistribute it and/or modify it
+  under the terms of the MIT License; see LICENSE file for more details.
+#}
+{%- extends "invenio_theme/frontpage.html" %}
+
+{%- block page_header %}
+{%- include "invenio_app_rdm/header_frontpage.html" %}
+{%- endblock page_header %}
+
+{%- block page_body %}
+{%- block first_section%}
+<section class="get-started-section section-content-dark-bg">
+  <span class="section-title frontpage-title">{{ _("CaltechDATA Test Repository") }}</span>
+  <div class="ui container">
+    <div class="ui padded relaxed centered grid">
+          <div class="command-line">
+              This repository is a test version of CaltechDATA using InvenioRDM. 
+	      This site may go offline and contents may be deleted at any time.
+          </div>
+    </div>
+  </div>
+</section>
+{%- endblock first_section%}
+{%- endblock page_body%}

@@ -1,12 +1,10 @@
-@import "@less/invenio_app_rdm/variables";
-
-@brandColor: #ff6c0c;
+@primaryColor: #ff6c0c;
 
 @navbar_background_image: unset;
 @navbar_background_color: #FFF;
 @footerLightColor: @brandColor;
 @footerDarkColor: #444;
-@searchButtonColor: @brandColor;
+@searchButtonColor: @primaryColor;
 
 .outer-navbar a {
     color: black;
