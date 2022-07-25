@@ -4,8 +4,8 @@ Description=Launch InvenioRDM Web Interface
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/home/ubuntu/coda-test
-ExecStart=/home/ubuntu/.local/bin/pipenv run uwsgi --logger syslog:inveniordm_rest uwsgi_rest.ini
+WorkingDirectory=/Sites/caltechdata
+ExecStart=/usr/local/bin/pipenv run uwsgi --logger syslog:inveniordm_rest uwsgi_rest.ini
 
 [Install]
 WantedBy=multi-user.target
