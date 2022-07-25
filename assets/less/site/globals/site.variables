@@ -1,27 +1,8 @@
 @primaryColor: #ff6c0c;
 
-@navbar_background_image: unset;
-@navbar_background_color: #FFF;
+@navbarBackgroundImage: unset;
+@navbarBackgroundColor: #FFF;
 @footerLightColor: @brandColor;
 @footerDarkColor: #444;
 @searchButtonColor: @primaryColor;
 
-.outer-navbar a {
-    color: black;
-}
-
-i.fitted.plus.icon.inverted {
-    color: black;
-}
-
-i.fitted.dropdown.icon.inverted {
-    color: black;
-}
-
-.get-started-section {
-    background-color: #444;
-}
-
-.frontpage-title {
-    color: white;
-}
