@@ -1,10 +1,3 @@
-{#
-  Copyright (C) 2019-2020 CERN.
-  Copyright (C) 2019-2020 Northwestern University.
-
-  Invenio App RDM is free software; you can redistribute it and/or modify it
-  under the terms of the MIT License; see LICENSE file for more details.
-#}
 {%- extends "invenio_theme/frontpage.html" %}
 
 {%- block page_header %}
@@ -12,17 +5,37 @@
 {%- endblock page_header %}
 
 {%- block page_body %}
-{%- block first_section%}
-<section class="get-started-section section-content-dark-bg">
-  <span class="section-title frontpage-title">{{ _("CaltechDATA Test Repository") }}</span>
-  <div class="ui container">
-    <div class="ui padded relaxed centered grid">
-          <div class="command-line">
-              This repository is a test version of CaltechDATA using InvenioRDM. 
-	      This site may go offline and contents may be deleted at any time.
-          </div>
+{%- block first_section %}
+<div class="get-started-section section-content white-bg">
+<h2 class="section-title">
+    This repository is a test version of CaltechDATA using InvenioRDM.
+    This site may go offline and contents may be deleted at any time.
+</h2>
+
+<div class="ui container three column stackable grid center aligned vertically padded relaxed">
+    <div class="rdm-goal column">
+        <h3 class="section-title">
+        <a href="{{ url_for('invenio_search_ui.search') }}" >Data Sets</a>
+        </h3>
+        <div class="command-line">
+        Data Sets
+        </div>
     </div>
-  </div>
-</section>
-{%- endblock first_section%}
-{%- endblock page_body%}
+    <div class="rdm-goal column">
+        <h3 class="section-title">
+        <a href="{{ url_for('invenio_search_ui.search') }}" >Software</a>
+        </h3>
+        <div class="command-line">
+        Software
+        </div>
+    </div>
+    <div class="rdm-goal column">
+        <h3 class="section-title">
+        <a href="{{ url_for('invenio_app_rdm_records.deposit_create') }}" >Make new records</a>
+        </h3>
+        <div class="command-line">Plant your contribution.</div>
+    </div>
+</div>
+</div>
+{%- endblock first_section %}
+{%- endblock page_body %}
