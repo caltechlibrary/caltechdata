@@ -1,0 +1,37 @@
+{%- extends config.THEME_HEADER_TEMPLATE %}
+
+{#- Remove search field from top bar on frontpage #}
+{%- block navbar_search %}{% endblock %}
+
+{%- block navbar %}
+{{ super() }}
+
+{%- block frontpage_search %}
+<div id="frontpage-search-bar" class="ui container fluid frontpage-header">
+  <div class="ui container grid rel-mt-2">
+    <div class="row">
+      <div class="sixteen wide column center aligned">
+        {%- block frontpage_title %}
+        <img class="ui centered medium image" src="/static/images/CaltechDATA_Logo.png">
+      </div>
+    </div>
+      {%- endblock frontpage_title %}
+      {%- block frontpage_form %}
+      <div class="row">
+          <div class="sixteen wide mobile four wide computer column"></div>
+          <div class="sixteen wide mobile eight wide computer column center aligned">
+            <form action="{{ url_for('invenio_search_ui.search') }}" class="ui form" role="search">
+              <div class="ui fluid big action input">
+                <input type="text" name="q" class="form-control" placeholder="{{ _('Search') }}">
+                <button type="submit" class="ui icon search button" aria-label="{{ _('Search') }}"><i class="search icon"></i></button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="ui divider hidden"></div>
+        {%- endblock frontpage_form %}
+  </div>
+</div>
+{%- endblock frontpage_search %}
+
+{% endblock %}
