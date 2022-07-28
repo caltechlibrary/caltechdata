@@ -5,6 +5,7 @@ Description=Launch InvenioRDM Web Interface
 Type=simple
 User=ubuntu
 WorkingDirectory=/Sites/caltechdata
+EnvironmentFile=/Sites/rdm.conf
 ExecStart=/usr/local/bin/pipenv run uwsgi --logger syslog:inveniordm_rest uwsgi_rest.ini
 
 [Install]
