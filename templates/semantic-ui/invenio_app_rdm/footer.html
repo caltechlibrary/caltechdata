@@ -1,31 +1,18 @@
-{#
-
-  Copyright (C) 2019-2020 CERN.
-  Copyright (C) 2019-2020 Northwestern University.
-  Copyright (C)      2021 Graz University of Technology.
-
-  Invenio App RDM is free software; you can redistribute it and/or modify it
-  under the terms of the MIT License; see LICENSE file for more details.
-#}
-
-<footer class="footer-global">
-  <div class="ui grid">
-    {%- block footer_top %}
-    <div class="row footer-top">
+<footer id="rdm-footer-element">
+  {%- block footer_top %}
+    <div class="footer-top">
       <div class="ui container">
-        <div class="ui grid">
-          <div class="invenio-rdm-footer">
-            {%- block footer_top_left %}
-            <div class="ui row grid">
-              <div class="rdm-footer">
-                  <h4><a href="https://library.caltech.edu">Caltech Library</a></h4>
-                <p class="margin-small"><a href="https://authors.library.caltech.edu">CaltechAUTHORS</a></p>
-		<p class="margin-small"><a href="https://thesis.library.caltech.edu">CaltechTHESIS</a></p>
-		<p class="margin-small"><a href="https://data.caltech.edu">CaltechDATA</a></p>
-              </div>
+        {%- block footer_top_left %}
+          <div class="ui grid">
+            <div class="rdm-footer five wide tablet two wide computer column">
+              <h2 class="ui small header">{{_("About CaltechDATA")}}</h2>
+              <p><a href="https://libanswers.caltech.edu/search/?t=0&adv=1&topics=CaltechDATA">FAQ</a></p>
+              <p><a href="https://library.caltech.edu/blog?tag_id=215943">News</a></p>
+              <p><a href="https://data.caltech.edu/terms">Terms</a></p>
+              <a href="mailto:data@caltech.edu?subject=Report a Problem">Report a Problem</a>
+              <a href="mailto:data@caltech.edu">Contact</a>
             </div>
-            {%- endblock footer_top_left %}
-          </div>
+          {%- endblock footer_top_left %}
           <div class="six wide column right aligned">
             {%- block footer_top_right %}
             {%- endblock footer_top_right %}
@@ -35,14 +22,14 @@
     </div>
     {%- endblock footer_top %}
     {%- block footer_bottom %}
-    <div class="row footer-bottom">
+    <div class="footer-bottom sub-footer">
       <div class="ui container">
         <div class="ui grid">
           <div class="eight wide column left middle aligned">
             {%- block footer_bottom_left %}
             {% trans invenio_rdm="http://inveniosoftware.org/products/rdm" %}Powered by <a
               href="{{invenio_rdm}}">InvenioRDM</a>{% endtrans %}
-          {%- endblock footer_bottom_left %}
+            {%- endblock footer_bottom_left %}
           </div>
           <div class="eight wide column right aligned">
             {%- block footer_bottom_right %}
@@ -56,5 +43,4 @@
       </div>
     </div>
     {%- endblock footer_bottom %}
-  </div>
 </footer>
