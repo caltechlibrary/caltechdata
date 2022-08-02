@@ -4,6 +4,8 @@ Description=Launch InvenioRDM Web Interface
 [Service]
 Type=simple
 User=ubuntu
+StandardOutput=kmsg
+StandardError=kmsg
 WorkingDirectory=/home/ubuntu/caltechdata
 EnvironmentFile=/Sites/rdm.conf
 ExecStart=/usr/local/bin/pipenv run uwsgi --logger syslog:inveniordm_ui uwsgi_ui.ini
