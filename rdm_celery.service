@@ -1,5 +1,5 @@
 [Unit]
-Description=Launch InvenioRDM Web Interface
+Description=Launch InvenioRDM Celery Task
 
 [Service]
 Type=simple
@@ -8,7 +8,7 @@ StandardOutput=kmsg
 StandardError=kmsg
 WorkingDirectory=/Sites/caltechdata
 EnvironmentFile=/Sites/rdm.conf
-ExecStart=/usr/local/bin/pipenv run uwsgi --logger syslog:inveniordm_ui uwsgi_ui.ini
+ExecStart=/usr/local/bin/pipenv run celery --app invenio_app.celery worker --beat --events --loglevel INFO
 
 [Install]
 WantedBy=multi-user.target
