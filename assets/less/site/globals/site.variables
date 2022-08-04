@@ -14,6 +14,10 @@ i.fitted.plus.icon.inverted {
     color: black;
 }
 
+i.fitted.inbox.icon.inverted {
+    color: black;
+}
+
 i.fitted.dropdown.icon.inverted {
     color: black;
 }
