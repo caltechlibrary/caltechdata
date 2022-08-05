@@ -22,6 +22,10 @@ i.fitted.dropdown.icon.inverted {
     color: black;
 }
 
+.ui.inverted.menu {
+    color: black;
+}
+
 .get-started-section {
     background-color: #444;
 }
