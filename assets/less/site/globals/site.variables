@@ -22,7 +22,7 @@ i.fitted.dropdown.icon.inverted {
     color: black;
 }
 
-.ui.inverted.menu {
+[role=menuitem] {
     color: black;
 }
 
