@@ -11,6 +11,9 @@ resourcetypes:
 licenses:
   pid-type: lic
   data-file: vocabularies/licenses.csv
+names:
+  pid-type: names
+  data-file: vocabularies/names_orcid.yaml
 # TODO: Uncoment this if you want to have all affiliations with ROR identifiers.
 # affiliations:
 #   pid-type: aff
