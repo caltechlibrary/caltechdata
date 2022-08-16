@@ -85,3 +85,9 @@ celerybeat-schedule
 ehthumbs.db
 Thumbs.db
 
+# Exclude private custom vobularies
+app_data/people.yaml
+app_data/users.yaml
+# SAML excludes
+saml/*
+*-saml
