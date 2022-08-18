@@ -91,3 +91,4 @@ app_data/users.yaml
 # SAML excludes
 saml/*
 *-saml
+postgres_env.cfg
