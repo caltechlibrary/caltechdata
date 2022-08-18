@@ -1,0 +1,7 @@
+#
+# This is a configuration file. It is "sourced" by 
+# invenio-sql-backups.bash to pickup the necessary
+# environment to run.
+#
+export DB_USERNAME="<USERNAME_GOES_HERE>"
+export DB_PASSWORD="<DB_PASSWORD_GOES_HERE>"

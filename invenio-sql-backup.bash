@@ -61,6 +61,7 @@ function backup_postgres_to() {
 		"${CONTAINER}" /usr/bin/pg_dumpall \
 		--username="${DB_USERNAME}" \
 		--clean \
+        --column-inserts \
 		>"${BACKUP_DIR}/${CONTAINER}-$(date +%Y-%m-%d).sql"
 }
 
