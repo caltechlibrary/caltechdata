@@ -58,7 +58,7 @@ function backup_postgres_to() {
 	$DOCKER container exec \
 		"${CONTAINER}" /usr/bin/pg_dump \
 		--username="${DB_USERNAME}" \
-        "${DB_NAME}"
+        "${DB_NAME}" \
 		>"${BACKUP_DIR}/${CONTAINER}-${DB_NAME}-$(date +%Y-%m-%d).sql"
 }
 
