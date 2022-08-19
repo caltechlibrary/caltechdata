@@ -1,3 +1,4 @@
+id;title__en;description__en;icon;tags;props__url;props__scheme;props__osi_approved
 apache-2.0;Apache License 2.0;A permissive license whose main conditions require preservation of copyright and license notices. Contributors provide an express grant of patent rights. Licensed works, modifications, and larger works may be distributed under different terms and without source code.;;recommended,all,software;http://www.apache.org/licenses/LICENSE-2.0;spdx;y
 bsd-3-clause;"BSD 3-Clause ""New"" or ""Revised"" License";;;all,software;https://opensource.org/licenses/BSD-3-Clause;spdx;y
 cc-by-4.0;Creative Commons Attribution 4.0 International;The Creative Commons Attribution license allows re-distribution and re-use of a licensed work on the condition that the creator is appropriately credited.;cc-by-icon;recommended,all,data;https://creativecommons.org/licenses/by/4.0/legalcode;spdx;
