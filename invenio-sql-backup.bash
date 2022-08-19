@@ -42,7 +42,7 @@ EOT
 function backup_postgres_to() {
 	DOCKER="$1"
 	CONTAINER="$2"
-	BACKUP_DIR="$4"
+	BACKUP_DIR="$3"
 	if [ "${CONTAINER}" = "" ]; then
 		echo "Missing the container name"
 		exit 1
