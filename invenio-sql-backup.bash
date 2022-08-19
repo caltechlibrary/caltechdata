@@ -59,7 +59,7 @@ function backup_postgres_to() {
 	fi
 	$DOCKER container exec \
 		"${CONTAINER}" /usr/bin/pg_dump \
-        "${DB_NAME}
+        "${DB_NAME}"
 		--username="${DB_USERNAME}" \
 		--clean \
         --column-inserts \
