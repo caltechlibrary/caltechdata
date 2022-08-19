@@ -1,7 +1,5 @@
 #!/bin/bash
-APP_NAME=$(basename $0)
-
-echo "DEBUG app_name ${APP_NAME}"
+APP_NAME="$(basename "$0")"
 
 #
 # This script can bring invenio-rdm down in an orderly fashion
@@ -30,8 +28,8 @@ used as the prefix to the backup up filename.
 
 # EXAMPLES
 
-Backup the Postgres running in `caltechdata_db_1` and write them
-to `/var/backups/postgres`.
+Backup the Postgres running in 'caltechdata_db_1' and write them
+to '/var/backups/postgres'.
 
 ~~~shell
      ${APP_NAME} caltechdata_db_1 /var/backups/postgres
@@ -70,10 +68,10 @@ function run_backups() {
 	#
 	# Sanity check our requiremented environment
 	#
-	SCRIPTNAME=$(readlink -f $0)
+	SCRIPTNAME="$(readlink -f "$0")"
 	echo "DEBUG scriptname ${SCRIPTNAME}"
 	DNAME="$(dirname "${SCRIPTNAME}")"
-	cd "${DNAME}"
+	cd "${DNAME}" || exit 1
 	# Source the file "postgres_env.cfg" it contains the
 	# value $DB_USERNAME.
 	if [ -f postgres_env.cfg ]; then
