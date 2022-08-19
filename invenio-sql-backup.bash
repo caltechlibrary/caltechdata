@@ -58,7 +58,8 @@ function backup_postgres_to() {
 	$DOCKER container exec \
 		"${CONTAINER}" /usr/bin/pg_dump \
 		--username="${DB_USERNAME}" \
-        "${DB_NAME}" \
+		--column-inserts \
+		"${DB_NAME}" \
 		>"${BACKUP_DIR}/${CONTAINER}-${DB_NAME}-$(date +%Y-%m-%d).sql"
 }
 
@@ -75,15 +76,15 @@ function run_backups() {
 	if [ -f postgres_env.cfg ]; then
 		. postgres_env.cfg
 	fi
-    if [ "$DB_NAME" = "" ]; then
-        echo "The environment variable DB_NAME is not set."
-        exit 1
-    fi
+	if [ "$DB_NAME" = "" ]; then
+		echo "The environment variable DB_NAME is not set."
+		exit 1
+	fi
 	if [ "$DB_USERNAME" = "" ]; then
 		echo "The environment variable DB_USERNAME is not set."
 		exit 1
 	fi
-	
+
 	DOCKER="/usr/bin/docker"
 	if [ ! -f "${DOCKER}" ]; then
 		DOCKER=$(which docker)
@@ -100,14 +101,15 @@ function run_backups() {
 #
 echo "DEBUG main entry for ${APP_NAME}"
 case "$1" in
-	h|help|-h|--help)
-		usage
-		exit 0
-		;;
-	*)
+h | help | -h | --help)
+	usage
+	exit 0
+	;;
+*)
 	if [ "$1" = "" ]; then
 		usage
 		exit 1
 	fi
 	run_backups "$1" "$2"
+	;;
 esac
