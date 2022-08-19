@@ -44,7 +44,7 @@ EOT
 function backup_postgres_to() {
 	DOCKER="$1"
 	CONTAINER="$2"
-	BACKUP_DIR="$3"
+	BACKUP_DIR="$4"
 	if [ "${CONTAINER}" = "" ]; then
 		echo "Missing the container name"
 		exit 1
@@ -58,11 +58,12 @@ function backup_postgres_to() {
 		exit 1
 	fi
 	$DOCKER container exec \
-		"${CONTAINER}" /usr/bin/pg_dumpall \
+		"${CONTAINER}" /usr/bin/pg_dump \
+        "${DB_NAME}
 		--username="${DB_USERNAME}" \
 		--clean \
         --column-inserts \
-		>"${BACKUP_DIR}/${CONTAINER}-$(date +%Y-%m-%d).sql"
+		>"${BACKUP_DIR}/${CONTAINER}-${DB_NAME}-$(date +%Y-%m-%d).sql"
 }
 
 function run_backups() {
@@ -78,6 +79,10 @@ function run_backups() {
 	if [ -f postgres_env.cfg ]; then
 		. postgres_env.cfg
 	fi
+    if [ "$DB_NAME" = "" ]; then
+        echo "The environment variable DB_NAME is not set."
+        exit 1
+    fi
 	if [ "$DB_USERNAME" = "" ]; then
 		echo "The environment variable DB_USERNAME is not set."
 		exit 1
