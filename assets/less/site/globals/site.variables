@@ -9,36 +9,21 @@
 @primaryColor: @blue;
 @secondaryColor: @black;
 
+// unset the background specified in invenio_app_rdm/theme/globals/site.variables
 @navbarBackgroundImage: unset;
-@navbarBackgroundColor: #FFF;
 @searchButtonColor: @primaryColor;
+@navbarBackgroundColor: @white;
 
-.outer-navbar a {
-    color: black;
-}
 
-i.fitted.plus.icon.inverted {
-    color: black;
-}
 // override invenio_app_rdm/theme/globals/site.variables
 @footerLightColor: @blue;
 
-i.fitted.inbox.icon.inverted {
-    color: black;
-}
 /*-------------------
       Base Sizes
 --------------------*/
 
-i.fitted.dropdown.icon.inverted {
-    color: black;
-}
 /* This is the single variable that controls them all */
 @emSize   : 16px;
-
-[role=menuitem] {
-    color: black;
-}
 
 .get-started-section {
     background-color: #444;

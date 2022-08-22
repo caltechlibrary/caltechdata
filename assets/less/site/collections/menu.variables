@@ -1,0 +1,4 @@
+// overriding menu settings from semantic-ui
+// https://github.com/Semantic-Org/Semantic-UI-LESS/blob/master/themes/default/collections/menu.variables
+@border: none;
+@boxShadow: none;
