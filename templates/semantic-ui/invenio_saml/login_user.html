@@ -1,0 +1,42 @@
+{# -*- coding: utf-8 -*-
+
+  This file is part of Invenio.
+  Copyright (C) 2015-2020 CERN.
+  Copyright (C)      2021 TU Wien.
+  Copyright (C)      2021 Graz University of Technology.
+
+
+  Invenio is free software; you can redistribute it and/or modify it
+  under the terms of the MIT License; see LICENSE file for more details.
+#}
+{%- extends config.OAUTHCLIENT_LOGIN_USER_TEMPLATE_PARENT %}
+
+{%- from "invenio_oauthclient/_macros.html" import oauth_button %}
+
+
+{%- block form_outer %}
+  {% if config.OAUTHCLIENT_REMOTE_APPS or config.SSO_SAML_IDPS %}
+  <div class="ui form">
+    {% for name in config.OAUTHCLIENT_REMOTE_APPS.keys() %}
+      {{ oauth_button(name, next=request.args.get('next')) }}
+    {% endfor %}
+  </div>
+  {% for name in config.SSO_SAML_IDPS.keys() %}
+  <div class="field">
+    <a class="fluid ui basic button large" href="{{ url_for('sso_saml.sso', idp=name) }}">
+      <i class="{{ name|lower() }} icon"></i>
+      {{
+      _('Sign in with %(title)s', title=config.SSO_SAML_IDPS[name]['title']|default("SAML", true))
+      }}
+    </a>
+  </div>
+  {% endfor %}
+
+    {%- if config.ACCOUNTS_LOCAL_LOGIN_ENABLED %}
+      <div class="ui horizontal divider">
+        {{ _("Or") }}
+      </div>
+    {%- endif %}
+  {% endif %}
+  {{ super () }}
+{% endblock %}
