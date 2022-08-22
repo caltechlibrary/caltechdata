@@ -26,12 +26,5 @@
 /* This is the single variable that controls them all */
 @emSize   : 16px;
 
-.get-started-section {
-    background-color: #444;
-}
-
-.frontpage-title {
-    color: white;
-}
 /* The size of page text  */
 @fontSize : 16px;

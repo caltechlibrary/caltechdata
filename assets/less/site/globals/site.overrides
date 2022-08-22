@@ -54,9 +54,16 @@ html.cover-page {
 #invenio-nav.ui.menu .ui.basic.secondary.button .dropdown.icon {
   background-color: transparent;
 }
+.get-started-section .rdm-goal > a {
+  color: @textColor;
+  img {
+    padding-block-end: 1em;
+  }
+}
 // footer menu / Powered by InvenioRDM
 // correct for unwrapped text next to wrapped elements under display:flex
 #rdm-footer-element .menu.secondary .menu.right .item {
   color: @white;
   display: block;
 }
+
