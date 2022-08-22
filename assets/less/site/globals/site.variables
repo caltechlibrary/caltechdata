@@ -1,9 +1,16 @@
-@primaryColor: #ff6c0c;
+// cascading site.variables:
+// https://github.com/Semantic-Org/Semantic-UI-LESS/blob/master/themes/default/globals/site.variables
+// https://github.com/inveniosoftware/invenio-app-rdm/blob/master/invenio_app_rdm/theme/assets/semantic-ui/less/invenio_app_rdm/theme/globals/site.variables
+
+@caltechOrange: #ff6c0c;
+@caltechDarkBlue: #003b4c;
+@blue: @caltechDarkBlue;
+
+@primaryColor: @blue;
+@secondaryColor: @black;
 
 @navbarBackgroundImage: unset;
 @navbarBackgroundColor: #FFF;
-@footerLightColor: @brandColor;
-@footerDarkColor: #444;
 @searchButtonColor: @primaryColor;
 
 .outer-navbar a {
@@ -13,6 +20,8 @@
 i.fitted.plus.icon.inverted {
     color: black;
 }
+// override invenio_app_rdm/theme/globals/site.variables
+@footerLightColor: @blue;
 
 i.fitted.inbox.icon.inverted {
     color: black;

@@ -1,0 +1,6 @@
+// footer menu / Powered by InvenioRDM
+// correct for unwrapped text next to wrapped elements under display:flex
+#rdm-footer-element .menu.secondary .menu.right .item {
+  color: @white;
+  display: block;
+}
