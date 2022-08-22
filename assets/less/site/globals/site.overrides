@@ -36,6 +36,11 @@ html.cover-page {
     }
   }
 }
+// override semantic-ui
+#invenio-nav .ui.basic.secondary.button:hover {
+  background: @transparentBlack !important;
+  text-decoration: underline;
+}
 .rdm-plus-menu {
   // NOTE items under plus menu are not properly keyboard accessible
   &:focus-visible {
@@ -66,4 +71,3 @@ html.cover-page {
   color: @white;
   display: block;
 }
-
