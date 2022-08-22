@@ -11,9 +11,10 @@
 
 // unset the background specified in invenio_app_rdm/theme/globals/site.variables
 @navbarBackgroundImage: unset;
-@searchButtonColor: @primaryColor;
 @navbarBackgroundColor: @white;
 
+// redundantly defined here and in button.variables
+@searchButtonColor: @caltechOrange;
 
 // override invenio_app_rdm/theme/globals/site.variables
 @footerLightColor: @blue;
