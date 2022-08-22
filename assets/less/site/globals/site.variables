@@ -26,10 +26,15 @@ i.fitted.plus.icon.inverted {
 i.fitted.inbox.icon.inverted {
     color: black;
 }
+/*-------------------
+      Base Sizes
+--------------------*/
 
 i.fitted.dropdown.icon.inverted {
     color: black;
 }
+/* This is the single variable that controls them all */
+@emSize   : 16px;
 
 [role=menuitem] {
     color: black;
@@ -42,3 +47,5 @@ i.fitted.dropdown.icon.inverted {
 .frontpage-title {
     color: white;
 }
+/* The size of page text  */
+@fontSize : 16px;
