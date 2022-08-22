@@ -1,3 +1,10 @@
+// login/signup
+html.cover-page {
+  background-color: transparent;
+}
+.cover-page {
+  color: @textColor;
+}
 // invenio_app_rdm/theme/globals/site.overrides does not reference the
 // `inverted` menu class in header.html when making text white, so removing the
 // `inverted` class from the template does not reset white text back to dark;

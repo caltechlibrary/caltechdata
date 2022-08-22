@@ -24,7 +24,7 @@
   {% for name in config.SSO_SAML_IDPS.keys() %}
   <div class="field">
     <a class="fluid ui basic button large" href="{{ url_for('sso_saml.sso', idp=name) }}">
-      <i class="{{ name|lower() }} icon"></i>
+      <i class="{{ name|lower() }} sign-in icon"></i>
       {{
       _('Sign in with %(title)s', title=config.SSO_SAML_IDPS[name]['title']|default("SAML", true))
       }}

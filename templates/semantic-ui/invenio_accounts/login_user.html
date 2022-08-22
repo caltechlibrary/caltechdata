@@ -50,7 +50,7 @@
   {%- block recoverable %}
     {%- if security.recoverable %}
       <div class="ui basic segment padded">
-        <a class="ui inverted header tiny"
+        <a class="ui header tiny"
            href="{{ url_for_security('forgot_password') }}">{{ _('Forgot password?') }}</a>
       </div>
     {%- endif %}
