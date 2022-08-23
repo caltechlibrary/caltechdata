@@ -5,6 +5,16 @@ html.cover-page {
 .cover-page {
   color: @textColor;
 }
+#invenio-nav {
+  .logo {
+    margin-block-start: 2em;
+    width: 300px;
+  }
+  .rdm-logo {
+    max-height: none;
+    width: 300px;
+  }
+}
 // invenio_app_rdm/theme/globals/site.overrides does not reference the
 // `inverted` menu class in header.html when making text white, so removing the
 // `inverted` class from the template does not reset white text back to dark;
