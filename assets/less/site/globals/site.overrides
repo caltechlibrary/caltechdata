@@ -7,11 +7,9 @@ html.cover-page {
 }
 #invenio-nav {
   .logo {
-    margin-block-start: 2em;
     width: 300px;
   }
   .rdm-logo {
-    max-height: none;
     width: 300px;
   }
 }
