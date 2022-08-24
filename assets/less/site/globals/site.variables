@@ -5,6 +5,7 @@
 @caltechOrange: #ff6c0c;
 @caltechDarkBlue: #003b4c;
 @blue: @caltechDarkBlue;
+@orange: @caltechOrange;
 
 @primaryColor: @blue;
 @secondaryColor: @black;
@@ -14,7 +15,7 @@
 @navbarBackgroundColor: @white;
 
 // redundantly defined here and in button.variables
-@searchButtonColor: @caltechOrange;
+@searchButtonColor: @orange;
 
 // override invenio_app_rdm/theme/globals/site.variables
 @footerLightColor: @blue;

@@ -1,0 +1,6 @@
+// unclear if something in invenio_app_rdm/theme is using the wrong arrow
+// but without this, the arrow points down initially, and left on active
+.ui.accordion .title .dropdown.icon::before,
+.ui.accordion .accordion .title .dropdown.icon::before {
+  content: '\f0da'/*rtl:'\f0d9'*/;
+}
