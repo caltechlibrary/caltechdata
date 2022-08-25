@@ -1,0 +1,3 @@
+// override invenio_app_rdm/theme/elements/button.variables
+// (invenio_app_rdm redundantly defines it here and in site.variables)
+@searchButtonColor: @orange;

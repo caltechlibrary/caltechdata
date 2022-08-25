@@ -14,26 +14,22 @@
 
 <div class="ui container three column stackable grid center aligned vertically padded relaxed">
     <div class="rdm-goal column">
-        <h3 class="section-title">
-        <a href="{{ url_for('invenio_search_ui.search') }}" >Data Sets</a>
-        </h3>
-        <div class="command-line">
-        Data Sets
-        </div>
+        <a href="{{ url_for('invenio_search_ui.search', f=('resource_type:dataset')) }}" >
+            <img class="ui tiny centered image" aria-hidden="true" src="{{ url_for('invenio_app_rdm.static', filename=('images/noun-data-5088250-FF6C0C.svg')) }}">
+            <div>Data Sets</div>
+        </a>
     </div>
     <div class="rdm-goal column">
-        <h3 class="section-title">
-        <a href="{{ url_for('invenio_search_ui.search') }}" >Software</a>
-        </h3>
-        <div class="command-line">
-        Software
-        </div>
+        <a href="{{ url_for('invenio_search_ui.search', f=('resource_type:software')) }}" >
+            <img class="ui tiny centered image" aria-hidden="true" src="{{ url_for('invenio_app_rdm.static', filename=('images/noun-coding-4329373-FF6C0C.svg')) }}">
+            <div>Software</div>
+        </a>
     </div>
     <div class="rdm-goal column">
-        <h3 class="section-title">
-        <a href="{{ url_for('invenio_app_rdm_records.deposit_create') }}" >Make new records</a>
-        </h3>
-        <div class="command-line">Upload</div>
+        <a href="{{ url_for('invenio_app_rdm_records.deposit_create') }}" >
+            <img class="ui tiny centered image" aria-hidden="true" src="{{ url_for('invenio_app_rdm.static', filename=('images/noun-upload-2617435-FF6C0C.svg')) }}">
+            <div>Upload</div>
+        </a>
     </div>
 </div>
 </div>

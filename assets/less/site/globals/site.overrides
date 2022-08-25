@@ -1,0 +1,81 @@
+// login/signup
+html.cover-page {
+  background-color: transparent;
+}
+.cover-page {
+  color: @textColor;
+}
+#invenio-nav {
+  .logo {
+    width: 300px;
+  }
+  .rdm-logo {
+    width: 300px;
+  }
+}
+// invenio_app_rdm/theme/globals/site.overrides does not reference the
+// `inverted` menu class in header.html when making text white, so removing the
+// `inverted` class from the template does not reset white text back to dark;
+// unfortunately, we must implement hacky overrides of the text color here
+.outer-navbar {
+  a {
+    color: @textColor;
+  }
+  #invenio-nav.ui.menu {
+    .ui.menu {
+      .item {
+        a:not(.ui.button) {
+          &:hover {
+            color: @textColor;
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+  }
+}
+// override the :not(.ui.button) part of the governing selector
+#invenio-nav.ui.menu {
+  .ui.menu {
+    .item {
+      a.ui.button {
+        margin-inline-start: 1rem;
+      }
+    }
+  }
+}
+// override semantic-ui
+#invenio-nav .ui.basic.secondary.button:hover {
+  background: @transparentBlack !important;
+  text-decoration: underline;
+}
+.rdm-plus-menu {
+  // NOTE items under plus menu are not properly keyboard accessible
+  &:focus-visible {
+    outline: 3px solid @focusedFormBorderColor !important;
+  }
+  &:hover {
+    text-decoration: underline;
+  }
+}
+#user-profile-dropdown-btn {
+  &:hover {
+    background: @transparentBlack;
+    text-decoration: underline;
+  }
+}
+#invenio-nav.ui.menu .ui.basic.secondary.button .dropdown.icon {
+  background-color: transparent;
+}
+.get-started-section .rdm-goal > a {
+  color: @textColor;
+  img {
+    padding-block-end: 1em;
+  }
+}
+// footer menu / Powered by InvenioRDM
+// correct for unwrapped text next to wrapped elements under display:flex
+#rdm-footer-element .menu.secondary .menu.right .item {
+  color: @white;
+  display: block;
+}
