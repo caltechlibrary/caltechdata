@@ -55,12 +55,18 @@ function backup_postgres_to() {
 		echo "${BACKUP_DIR} does not exist"
 		exit 1
 	fi
+	BACKUP_FILE="${BACKUP_DIR}/${CONTAINER}-${DB_NAME}-$(date +%Y-%m-%d).sql"
 	$DOCKER container exec \
 		"${CONTAINER}" /usr/bin/pg_dump \
 		--username="${DB_USERNAME}" \
 		--column-inserts \
 		"${DB_NAME}" \
-		>"${BACKUP_DIR}/${CONTAINER}-${DB_NAME}-$(date +%Y-%m-%d).sql"
+		>"${BACKUP_FILE}"
+	if [ -f "${BACKUP_FILE}" ]; then
+		gzip "${BACKUP_FILE}"
+	else
+		echo "WARNING: ${BACKUP_FILE} not found!"
+	fi
 }
 
 function run_backups() {
@@ -68,7 +74,6 @@ function run_backups() {
 	# Sanity check our requiremented environment
 	#
 	SCRIPTNAME="$(readlink -f "$0")"
-	echo "DEBUG scriptname ${SCRIPTNAME}"
 	DNAME="$(dirname "${SCRIPTNAME}")"
 	cd "${DNAME}" || exit 1
 	# Source the file "postgres_env.cfg" it contains the
@@ -99,7 +104,6 @@ function run_backups() {
 #
 # Main entry script point.
 #
-echo "DEBUG main entry for ${APP_NAME}"
 case "$1" in
 h | help | -h | --help)
 	usage
