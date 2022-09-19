@@ -40,7 +40,7 @@ EOT
 
 }
 
-function retore_postgres_from() {
+function restore_postgres_from() {
 	BACKUP_FILE="$1"
 	DOCKER="$2"
 	CONTAINER="$3"
@@ -48,10 +48,13 @@ function retore_postgres_from() {
 		echo "Missing the container name"
 		exit 1
 	fi
-	cat "${BACKUP_FILE}" | $DOCKER container exec \
-		-i "${CONTAINER}" /usr/bin/psql \
-		--username="${DB_USERNAME}" \
-		"${DB_NAME}"
+	$DOCKER container exec -it "${CONTAINER}" /usr/bin/psql -U "${DB_USERNAME}" --dbname postgres -c "DROP DATABASE IF EXISTS ${DB_NAME}"
+	$DOCKER container exec -it "${CONTAINER}" /usr/bin/psql -U "${DB_USERNAME}" --dbname postgres -c "CREATE DATABASE ${DB_NAME}"
+	$DOCKER container exec /usr/bin/createdb -U "${DB_USERNAME}" caltechdata
+ 	cat "${BACKUP_FILE}" | $DOCKER container exec \
+ 		-i "${CONTAINER}" /usr/bin/psql \
+ 		--username="${DB_USERNAME}" \
+ 		"${DB_NAME}"
 }
 
 function run_restore() {
