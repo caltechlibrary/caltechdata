@@ -1,8 +1,8 @@
-# CaltechDATA repository using InvenioRDM
+# CaltechDATA
 
 This is the source repsository for CaltechDATA, Caltech's Institutional Data
-and Software Repository. The repository is currently migrating to InvenioRDM
-and is a work in progress.
+and Software Repository. It is an instance of the [InvenioRDM repository
+platform](https://inveniosoftware.org/products/rdm/).
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg?color=orange)](https://choosealicense.com/licenses/bsd-3-clause)
 [![Latest release](https://img.shields.io/github/v/release/caltechlibrary/template.svg?color=b44e88)](https://github.com/caltechlibrary/template/releases)
@@ -24,51 +24,133 @@ and is a work in progress.
 
 ## Introduction
 
-This repository is a GitHub template repository for creating software project repositories at the Caltech Library.  The [associated wiki page](https://github.com/caltechlibrary/template/wiki/Using-this-template-repo) explains how to use the template repository.
-
-This README file is in Markdown format, and is meant to provide a template for README files as well an illustration of what the README file can be expected to look like.  For a software project, this [Introduction](#introduction) section &ndash; which you are presently reading &ndash; should provide background for the project, a brief explanation of what the project is about, and optionally, pointers to resources that can help orient readers.  Ideally, this section should be short.
-
+This repository was initialized following [the InvenioRDM
+instructions/](https://inveniordm.docs.cern.ch/install/). It was then
+customized to meet the needs of the Caltech community. This is only one
+deployment example, and may or not be appropriate for your specific
+institution and IT setup. 
 
 ## Installation
 
-Begin this section by mentioning any prerequisites that may be important for users to have before they can use your software.  Examples include hardware and operating system requirements.
+We currently deploy CaltechDATA on a m6i.xlarge AWS EC2 instance with Ubuntu
+20.04. We use this [cloud-init
+file](https://github.com/caltechlibrary/cloud-init-examples/blob/main/caltechdata-init.yaml)
+to do most of the initial setup.
 
-Next, provide step-by-step instructions for installing the software, preferably with command examples that can be copy-pasted by readers into their software environments. For example:
+### Install NVM
 
-```bash
-a command-line command here
+We haven't gotten NVM to install with cloud-init. Run `curl -o-
+https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash`, then
+reboot and type `nvm install 14`
+
+### Install InvenioRDM
+
+Clone this repository into /Sites, then go to that directory
+
+```
+invenio-cli install
+pipenv run pip install invenio-saml (I probably should figure out how to add this to the GitHin installed environment)
+invenio-cli install
+invenio-cli services setup --no-demo-data
 ```
 
-Sometimes, subsections may be needed for different operating systems or particularly complicated installations.
- 
+You'll need a rdm.conf file in /Sites, which includes secrets:
+
+```
+INVENIO_DATACITE_PASSWORD=
+INVENIO_SECRET_KEY=
+INVENIO_S3_ACCESS_KEY_ID=
+INVENIO_S3_SECRET_ACCESS_KEY=
+FLASK_ENV=
+INVENIO_LOGGING_CONSOLE_LEVEL=
+```
+
+This configuration uses S3 for storage. You need to change the bucket name with
+
+`pipenv run invenio files location s3-default s3://caltechdata --default`
+
+You can load the funders vocabulary with
+
+```
+wget https://zenodo.org/record/7038913/files/v1.5-2022-08-31-ror-data.zip?download=1 -O ror.zip
+pipenv run invenio vocabularies import --vocabulary funders --origin "/Sites/caltechdata/ror.zip"
+```
+
+We have a local CaltechPEOPLE list, which is loaded with
+
+```
+pipenv run invenio vocabularies import --vocabulary names --filepath ./vocabularies-future.yaml
+```
+
+### Domain Configuration
+
+You'll need a domain name, and set an A record to point the domain name to your
+AWS instance.
+
+Move nginx.conf to `/etc/nginx/sites-enabled/default`
+
+Copy redirect-map.conf to `/etc/nginx/`
+
+Get a certificate with `sudo certbot --nginx`
+
+Restart nginx with `sudo service nginx restart`
+
+### Systemctl
+
+We need three services to run InvenioRDM. Set them up with
+
+```
+sudo cp rdm_rest.service /etc/systemd/system/.
+sudo cp rdm.service /etc/systemd/system/.
+sudo cp rdm_celery.service /etc/systemd/system/.
+sudo systemctl daemon-reload
+sudo systemctl start rdm
+sudo systemctl start rdm_rest
+sudo systemctl start rdm_celery
+```
+
+You should now have a InvenioRDM repository fully running!
 
 ## Usage
 
-This [Usage](#usage) section would explain more about how to run the software, what kind of behavior to expect, and so on.
+### Stopping InvenioRDM
 
-### _Basic operation_
+```
+cd /Sites/caltechdata
+sudo systemctl stop nginx
+sudo systemctl stop rdm
+sudo systemctl stop rdm_rest
+sudo systemctl stop rdm_celery
+invenio-cli services stop
+```
 
-Begin with the simplest possible example of how to use your software.  Provide example command lines and/or screen images, as appropriate, to help readers understand how the software is expected to be used.  Many readers are likely to look for command lines they can copy-paste directly from your explanations, so it's best to keep that in mind as you write examples.
+### Starting InvenioRDM
 
-### _Additional options_
-
-Some projects need to communicate additional information to users and can benefit from additional sections in the README file.  It's difficult to give specific instructions &ndash; a lot depends on your software, your intended audience, etc.  Use your judgment and ask for feedback from users or colleagues to help figure out what else is worth explaining.
-
+```
+cd /Sites/caltechdata
+invenio-cli services start
+# Make sure there are no errors in the invenio-saml install
+sudo systemctl start rdm_celery
+sudo systemctl start rdm_rest
+sudo systemctl start rdm
+sudo systemctl start nginx
+```
 
 ## Known issues and limitations
 
-In this section, summarize any notable issues and/or limitations of your software.  If none are known yet, this section can be omitted (and don't forget to remove the corresponding entry in the [Table of Contents](#table-of-contents) too); alternatively, you can leave this section in and write something along the lines of "none are known at this time".
-
+These insttallation instructions are intended for this specific Caltech
+deployment, and you may need to modify them to work for your specific
+configuration.
 
 ## Getting help
 
-Inform readers of how they can contact you, or at least how they can report problems they may encounter.  This may simply be a request to use the issue tracker on your repository, but many projects have associated chat or mailing lists, and this section is a good place to mention those.
-
+Please open an issue or pull request if you notice any problems or have
+questions.
 
 ## Contributing
 
-This section is optional; if your repository is for a project that accepts open-source contributions, then this section is where you can mention how people can offer contributions, and point them to your guidelines for contributing.  (If you delete this section, don't forget to remove the corresponding entry in the [Table of Contents](#table-of-contents) too.)
-
+Please see our [Contributing
+guidelines](https://github.com/caltechlibrary/caltechdata/blob/main/CONTRIBUTING.md)
 
 ## License
 
@@ -77,14 +159,16 @@ Software produced by the Caltech Library is Copyright © 2022 California Institu
 
 ## Authors and history
 
-In this section, list the authors and contributors to your software project.  Adding additional notes here about the history of the project can make it more interesting and compelling.  This is also a place where you can acknowledge other contributions to the work and the use of other people's software or tools.
-
+Tom Morrell led the CaltechDATA InvenioRDM development. Tommy Keswick did all
+the themeing and site design. Robert Doiel implemented the Shibboleth login.
+Mike Hucka worked on the GitHub integration. TUGraz and all the other
+InvenioRDM partners were instrumental in getting all the customizations
+working.
 
 ## Acknowledgments
 
 This work was funded by the California Institute of Technology Library.
 
-(If this work was also supported by other organizations, acknowledge them here.  In addition, if your work relies on software libraries, or was inspired by looking at other work, it is appropriate to acknowledge this intellectual debt too.)
 
 <div align="center">
   <br>
