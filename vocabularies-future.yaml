@@ -1,0 +1,10 @@
+names:
+  readers:
+    - type: yaml
+      args:
+        origin: "./app_data/people.yaml"
+  writers:
+    - type: service
+      args:
+        service_or_name: names
+        identity: system_identity
