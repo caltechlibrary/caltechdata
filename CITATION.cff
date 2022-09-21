@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: CaltechDATA Repository
+authors:
+  - family-names: Morrell
+    given-names: Thomas E.
+    orcid: https://orcid.org/0000-0001-9266-5146
+  - family-names: Keswick
+    given-names: Tommy
+    orcid: https://orcid.org/0000-0001-5644-440X
+  - family-names: Doiel
+    given-names: Robert
+    orcid: https://orcid.org/0000-0003-0900-6903
+  - family-names: Hucka
+    given-names: Michael
+    orcid: https://orcid.org/0000-0001-9105-5960
+abstract: InvenioRDM source for CaltechDATA Repository
+repository-code: "https://github.com/caltechlibrary/caltechdata"
+type: software
+version: 1.0.0
+license-url: "https://github.com/caltechlibrary/caltechdata/blob/main/LICENSE"
+keywords:
+  - InvenioRDM
+  - Institutional
+  - Repository
+date-released: 2022-09-21
