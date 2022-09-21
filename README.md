@@ -5,8 +5,8 @@ and Software Repository. It is an instance of the [InvenioRDM repository
 platform](https://inveniosoftware.org/products/rdm/).
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg?color=orange)](https://choosealicense.com/licenses/bsd-3-clause)
-[![Latest release](https://img.shields.io/github/v/release/caltechlibrary/template.svg?color=b44e88)](https://github.com/caltechlibrary/template/releases)
-[![DOI](https://data.caltech.edu/badge/201106666.svg)](https://data.caltech.edu/badge/latestdoi/201106666)
+[![Latest release](https://img.shields.io/github/v/release/caltechlibrary/caltechdata.svg?color=b44e88)](https://github.com/caltechlibrary/caltechdata/releases)
+
 
 
 ## Table of contents
