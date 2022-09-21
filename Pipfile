@@ -13,6 +13,7 @@ uwsgitop = ">=0.11"
 uwsgi-tools = ">=1.1.1"
 invenio-communities = "==2.8.9"
 invenio-saml = "*"
+lxml = "*"
 
 [requires]
 python_version = "3.8"
