@@ -49,8 +49,6 @@ Clone this repository into /Sites, then go to that directory
 
 ```
 invenio-cli install
-pipenv run pip install invenio-saml (I probably should figure out how to add this to the GitHin installed environment)
-invenio-cli install
 invenio-cli services setup --no-demo-data
 ```
 
