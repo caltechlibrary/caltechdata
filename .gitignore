@@ -92,3 +92,5 @@ app_data/users.yaml
 saml/*
 *-saml
 postgres_env.cfg
+*.sql
+*.gz
