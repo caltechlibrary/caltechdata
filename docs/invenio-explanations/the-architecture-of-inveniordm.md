@@ -128,6 +128,12 @@ invenio_db.models =
 
 Note how this module defines many entry points: the overall module class (`InvenioWebhooks`), blueprints, and database object models. This pattern is followed more or less by all the other Invenio modules. Each one has a set of entry_points (some more than others), which are discovered by the application framework.
 
+Incidentally, the [Invenio-Base](https://invenio-base.readthedocs.io/en/latest/usage.html) module installs [a program called `inveniomanage`](https://invenio-base.readthedocs.io/en/latest/usage.html#the-inveniomanage-command) that includes a command to list all the entry points defined in an installation:
+
+```sh
+inveniomanage instance entrypoints
+```
+
 ### The chain of software dependencies
 
 When you install InvenioRDM, you don't have to do a lot of individual `pip install` commands to get several dozen modules installed—you only do one. So, _something_ knows which modules to pull together in order to create an installation of InvenioRDM. What is that something?
