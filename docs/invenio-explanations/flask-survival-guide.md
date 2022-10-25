@@ -23,7 +23,7 @@ Figuring this out mainly requires that you interpret the first argument in the c
         template_folder="../templates",
     )
     ```
-* The part of the string after the `.` is the name of a function associated with a route defined for the blueprint. If the endpoint string is "A.B", then "B" is the name of a Python function attached to a route. For the example given at the beginning, this turns out to be the following code in the file where the blueprint "invenio_oauthclient" is defined:
+* The part of the string after the `.` is the name of a function associated with a route defined for the blueprint. If the endpoint string is "A.B", then "B" is the name of a Python function attached to a route. (Important: it's the _function_, not the URL fragment defined as part of the route, even though the function is often given the same name.) For the example given at the beginning, this turns out to be the following code in the file where the blueprint "invenio_oauthclient" is defined:
     ```python
     @blueprint.route("/login/<remote_app>/")
     def login(remote_app):
@@ -35,3 +35,5 @@ Figuring this out mainly requires that you interpret the first argument in the c
     ```
 
 The parameter `remote_app` in this example turns out to be important to disambiguating the possibilities in the blueprint code: in the file containing the definition of route `/login/<remote_app>/`, there is _also_ a definition for `/login`. But for the case given at the beginning of this example, with the parameter given to `url_for()`, the relevant route is `/login/<remote_app>/` rather than `/login`.
+
+Adding to the confusion is that, often, the name of the route (here, `/login/...`) is the same as the function used to implement it (i.e., `def login(...)`). The "B" part of the endpoint "A.B" refers to the function name, not the route name; i.e., it's what's in the `def`, not what's in the `@blueprint.route`.
