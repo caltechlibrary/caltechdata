@@ -30,10 +30,12 @@ headers = {
 }
 
 for idv in args.ids:
-    response = requests.get(f"{url}/{idv}/draft", headers=headers)
+    response = requests.get(f"{url}/{idv}", headers=headers)
     metadata = response.json()
     #Fix incorrect GRID export for funders
-    for funder in metadata['fundingReferences']:
-        funder['funderIdentifier'] = grid_to_ror(funder['funderIdentifier'])
-        funder['funderIdentifierType'] = 'ROR'
-    caltechdata_edit(idv,metadata,production=True,publish=False)
+    if 'fundingReferences' in metadata:
+        for funder in metadata['fundingReferences']:
+            if 'funderIdentifier' in funder:
+                funder['funderIdentifier'] = grid_to_ror(funder['funderIdentifier'])
+                funder['funderIdentifierType'] = 'ROR'
+    caltechdata_edit(idv,metadata,production=True,publish=True)
