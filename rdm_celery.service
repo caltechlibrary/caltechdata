@@ -3,7 +3,7 @@ Description=Launch InvenioRDM Celery Task
 
 [Service]
 Type=simple
-User=ubuntu
+User=tmorrell
 StandardOutput=kmsg
 StandardError=kmsg
 WorkingDirectory=/Sites/caltechdata
