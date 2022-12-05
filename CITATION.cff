@@ -17,7 +17,7 @@ authors:
 abstract: InvenioRDM source for CaltechDATA Repository
 repository-code: "https://github.com/caltechlibrary/caltechdata"
 type: software
-version: 1.0.0
+version: 1.0.1
 license-url: "https://github.com/caltechlibrary/caltechdata/blob/main/LICENSE"
 keywords:
   - InvenioRDM
