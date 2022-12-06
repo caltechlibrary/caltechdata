@@ -14,8 +14,9 @@ uwsgi-tools = ">=1.1.1"
 invenio-communities = "==2.8.9"
 invenio-saml = "*"
 lxml = "==4.9.1"
-jupyter-core = "==4.11.2"
+jupyter-core = "*"
 cryptography = "*"
+
 
 [requires]
 python_version = "3.8"
