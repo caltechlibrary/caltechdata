@@ -8,3 +8,14 @@ names:
       args:
         service_or_name: names
         identity: system_identity
+awards:
+  readers:
+    - type: json
+      args:
+        origin: "app_data/vocabularies/awards.json"
+  writers:
+    - type: awards-service
+      args:
+        service_or_name: awards
+        identity: system_identity
+~                                        
