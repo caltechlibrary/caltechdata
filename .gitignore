@@ -88,6 +88,8 @@ Thumbs.db
 # Exclude private custom vobularies
 app_data/people.yaml
 app_data/users.yaml
+.env
+
 # SAML excludes
 saml/*
 *-saml
