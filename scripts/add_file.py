@@ -51,6 +51,8 @@ def add_file(recid, fp, user):
             fg='green'))
 
     if click.confirm(u'Continue?'):
+        if record['files']['enabled'] == False:
+            record.files.enabled=True
         bucket.locked = False
         record.files[key] = fp
         bucket.locked = True
