@@ -52,7 +52,7 @@ invenio-cli install
 invenio-cli services setup --no-demo-data
 ```
 
-You'll need a rdm.conf file in /Sites, which includes secrets:
+You'll need to add .env file to the repository directory, which includes secrets:
 
 ```
 INVENIO_DATACITE_PASSWORD=
@@ -61,6 +61,7 @@ INVENIO_S3_ACCESS_KEY_ID=
 INVENIO_S3_SECRET_ACCESS_KEY=
 FLASK_ENV=
 INVENIO_LOGGING_CONSOLE_LEVEL=
+INVENIO_MAIL_PASSWORD=
 ```
 
 This configuration uses S3 for storage. You need to change the bucket name with
