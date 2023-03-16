@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "fd7231b1cb38c335407e602fb479ab04e091979c721dd30665a18b668c9d8faa"
+            "sha256": "acbfdc12c37dc799ec8d3b54684b0715f594dab0a7d3dea95ac5afe7a39d2aa6"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1186,7 +1186,7 @@
                 "sha256:6f090e29ab8ef8643e521763a4f1f39dc3914db643122b1e9d3328ff2e43ada2"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==8.5.0"
+            "version": "==8.10"
         },
         "isbnlib": {
             "hashes": [
