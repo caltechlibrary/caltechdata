@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "50e9187410d1354ee1958a42d1cddd9cbb70f69ea669be5a81ed5d3faa36b0b5"
+            "sha256": "010d5f495074cde7ffad65cef692ad6c37e0373d2667be0a3c9c3457fd97bc36"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -170,7 +170,9 @@
         },
         "cairosvg": {
             "hashes": [
+                "sha256:17cb96423a896258848322a95c80160e714a58f1af3dd73b8e1750994519b9f9",
                 "sha256:98c276b7e4f0caf01e5c7176765c104ffa1aa1461d63b2053b04ab663cf7052b",
+                "sha256:ac4dc7c1d38b3a15717db2633a3a383012e0be664c727c911637e6af6a49293c",
                 "sha256:b0b9929cf5dba005178d746a8036fcf0025550f498ca54db61873322384783bc"
             ],
             "version": "==2.7.0"
@@ -222,8 +224,7 @@
                 "sha256:36973885b9542e6bd01dea287b2b4b3b21236307c56324fcc3f1160f2d655ed5",
                 "sha256:e232343de1ab72c2aa521b625c80f699e356830fd0e2c620b465b304b17b0516"
             ],
-            "markers": "python_version >= '3.6'",
-            "version": "==2022.9.14"
+            "version": "==2022.12.07"
         },
         "cffi": {
             "hashes": [
@@ -336,7 +337,7 @@
                 "sha256:a0713dc7a1de3f06bc0df5a9567ad19ead2d3d5689b434768a6145bff77c0667",
                 "sha256:f184f0d851d96b6d29297354ed981b7dd71df7ff500d82fa6d11f0856bee8035"
             ],
-            "markers": "python_version < '4.0' and python_full_version >= '3.6.2'",
+            "markers": "python_version < '4' and python_full_version >= '3.6.2'",
             "version": "==0.3.0"
         },
         "click-plugins": {
@@ -1923,7 +1924,7 @@
             "hashes": [
                 "sha256:b2163a246c585894d808f18783e19137cb70a0c18fb36748dc01fc6f109c1646"
             ],
-            "markers": "python_version >= '3.6' and python_version < '4.0'",
+            "markers": "python_version >= '3.6' and python_version < '4'",
             "version": "==22.3.5"
         },
         "pycparser": {
