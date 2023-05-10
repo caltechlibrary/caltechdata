@@ -8,6 +8,9 @@ subjects:
 resourcetypes:
   pid-type: rsrct
   data-file: vocabularies/resource_types.yaml
+descriptiontypes:
+  pid-type: dty
+  data-file: vocabularies/description_types.yaml
 licenses:
   pid-type: lic
   data-file: vocabularies/licenses.csv
