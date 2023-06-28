@@ -18,6 +18,7 @@ headers = {
 
 for idv in args.ids:
     response = requests.get(f"{url}/{idv}/draft/files", headers=headers)
+    print(f"{url}/{idv}/draft/files")
     entries = response.json()["entries"]
     for entry in entries:
         if entry["status"] == "pending":
