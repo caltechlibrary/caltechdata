@@ -10,11 +10,11 @@ names:
         identity: system_identity
 awards:
   readers:
-    - type: json
+    - type: jsonl
       args:
-        origin: "app_data/vocabularies/awards.json"
+        origin: "./app_data/awards.jsonl"
   writers:
     - type: awards-service
       args:
-        service_or_name: awards      
-        identity: system_identity
+        service_or_name: awards
+        identity: system_identity      
