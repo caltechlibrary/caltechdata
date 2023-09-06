@@ -12,10 +12,10 @@ from invenio_utilities_tuw.cli.utils import set_record_owners
 def cli():
     pass
 
-# @click.command('change_owner')
-# @click.argument('recid', type=str)
-# @click.argument('owner', type=int)
-# @click.argument('user', type=int)
+@click.command('change_owner')
+@click.argument('recid', type=str)
+@click.argument('owner', type=int)
+@click.argument('user', type=int)
 def change_owner(recid, owner, user):
     u = get_identity_for_user(user)
     service = get_record_service()
@@ -34,7 +34,7 @@ def change_owners(owner_file):
         change_owner(line[0],int(line[1]),2)
         exit()
 
-#cli.add_command(change_owner)
+cli.add_command(change_owner)
 cli.add_command(change_owners)
 
 if __name__=="__main__":
