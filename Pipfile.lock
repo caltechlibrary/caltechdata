@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "7775c3eff57d86abbcf220ca041ec4bf732130de78d72205d04d6340bcc90e60"
+            "sha256": "1c6cac4cf0188758510a37d66e4f5daf842a801daca91a01be61ee024eb4af07"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -362,7 +362,7 @@
                 "sha256:a0713dc7a1de3f06bc0df5a9567ad19ead2d3d5689b434768a6145bff77c0667",
                 "sha256:f184f0d851d96b6d29297354ed981b7dd71df7ff500d82fa6d11f0856bee8035"
             ],
-            "markers": "python_full_version >= '3.6.2' and python_full_version < '4.0.0'",
+            "markers": "python_version < '4' and python_full_version >= '3.6.2'",
             "version": "==0.3.0"
         },
         "click-plugins": {
@@ -1095,7 +1095,7 @@
                 "sha256:58b10f3959cfbb780587e7873b854277a56c32315a2944f3064aa037813d4882",
                 "sha256:a40f838153574063af2a091ca7a4c8c034eca8f1085417548bebfbfcd265c4d2"
             ],
-            "version": "==1.3.7"
+            "version": "==v1.3.10"
         },
         "invenio-rdm-records": {
             "hashes": [
@@ -1957,7 +1957,7 @@
             "hashes": [
                 "sha256:b2163a246c585894d808f18783e19137cb70a0c18fb36748dc01fc6f109c1646"
             ],
-            "markers": "python_version >= '3.6' and python_full_version < '4.0.0'",
+            "markers": "python_version >= '3.6' and python_version < '4'",
             "version": "==22.3.5"
         },
         "pycparser": {
