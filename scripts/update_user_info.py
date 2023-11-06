@@ -27,8 +27,18 @@ def confirm_user(user):
     db.session.commit()
     reindex_user(user.id)
 
+@click.command('change_email')
+@click.argument('user', type=int)
+@click.argument('new_email', type=str)
+def change_email(user, new_email):
+    user = current_datastore.get_user(user)
+    user.email = new_email
+    db.session.commit()
+    reindex_user(user.id)
+
 cli.add_command(change_username)
 cli.add_command(confirm_user)
+cli.add_command(change_email)
 
 if __name__=="__main__":
     cli()
