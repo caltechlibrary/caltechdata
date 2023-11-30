@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "15e949c99b35be76e2ce34fc96de1beba35fb97631acfccc3387aa8ba9233720"
+            "sha256": "ce4630525afdb38b0d4320889004caf16740b196a508d38a9658501600ac0dce"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -866,10 +866,11 @@
         },
         "idutils": {
             "hashes": [
-                "sha256:6246205d35d07466c9ce807a2bdf616eaacb3b8fc2934ccdf1bf51ea41785de7",
-                "sha256:c625193d7991f5c396aaf4c6af83865fb032ce51e1f60e7271d129d8df2bd2b1"
+                "sha256:908aabada07bb26e5e8f2d78ff222611b493cd721a05f1451f96d373a48f504d",
+                "sha256:d09220edd893c3164837890f0d1da303111a16a231dd9dd331c64d3d6f2b52cb"
             ],
-            "version": "==1.1.12"
+            "index": "pypi",
+            "version": "==1.2.1"
         },
         "importlib-metadata": {
             "hashes": [
@@ -1241,10 +1242,10 @@
         },
         "isbnlib": {
             "hashes": [
-                "sha256:623a09329e8ec7049edf15dd412db042bf4f8236a428bf7a22d84a125584f52d",
-                "sha256:c9e6c1dcaa9dff195429373cf2beb3117f30b3fca43d7db5aec5a2d1f6f59784"
+                "sha256:96f90864c77b01f55fa11e5bfca9fd909501d9842f3bc710d4eab85195d90539",
+                "sha256:f885b350fc8e600a919ed46e3b07253062cd604af69885455a25a299217b3fe2"
             ],
-            "version": "==3.10.10"
+            "version": "==3.10.14"
         },
         "isodate": {
             "hashes": [
