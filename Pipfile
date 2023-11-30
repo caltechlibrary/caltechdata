@@ -14,8 +14,7 @@ uwsgi-tools = ">=1.1.1"
 invenio-communities = "==2.8.9"
 invenio-saml = "*"
 lxml = "==4.9.1"
-sentry-sdk = {extras = ["flask"], version = "*"}
-invenio-previewer = "==v1.3.10"
+idutils = ">=1.2.1"
 
 [requires]
 python_version = "3.8"
