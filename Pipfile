@@ -16,6 +16,7 @@ invenio-saml = "*"
 lxml = "==4.9.1"
 idutils = ">=1.2.1"
 cryptography = ">=41.0.6"
+invenio-previewer = ">=v1.3.10"
 
 [requires]
 python_version = "3.8"
