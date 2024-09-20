@@ -7,19 +7,13 @@ verify_ssl = true
 check-manifest = ">=0.25"
 
 [packages]
-invenio-app-rdm = {extras = ["postgresql", "elasticsearch7", "s3"], version = "~=9.1.0"}
-uwsgi = ">=2.0"
+invenio-app-rdm = {extras = ["postgresql", "opensearch2", "s3"], version = "~=10.0.0"}
+pyuwsgi = ">=2.0"
 uwsgitop = ">=0.11"
 uwsgi-tools = ">=1.1.1"
-invenio-communities = "==2.8.9"
-invenio-saml = "*"
-lxml = "==4.9.1"
-idutils = ">=1.2.1"
-cryptography = ">=41.0.6"
-invenio-previewer = ">=v1.3.10"
 
 [requires]
-python_version = "3.8"
+python_version = "3.9"
 
 [pipenv]
 allow_prereleases = false
