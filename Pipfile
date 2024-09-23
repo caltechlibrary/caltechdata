@@ -11,6 +11,7 @@ invenio-app-rdm = {extras = ["postgresql", "opensearch2", "s3"], version = "~=10
 pyuwsgi = ">=2.0"
 uwsgitop = ">=0.11"
 uwsgi-tools = ">=1.1.1"
+invenio-saml = "*"
 
 [requires]
 python_version = "3.9"
