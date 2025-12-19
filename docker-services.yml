@@ -59,7 +59,7 @@ services:
       - "15672:15672"
       - "5672:5672"
   search:
-    image: opensearchproject/opensearch:2.3.0
+    image: opensearchproject/opensearch:2.17.1
     restart: "unless-stopped"
     environment:
       # settings only for development. DO NOT use in production!
@@ -77,12 +77,12 @@ services:
         hard: 65536
     mem_limit: 2g
     ports:
-      - "9200:9200"
-      - "9600:9600"
+      - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:9200:9200"
+      - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:9600:9600"
   opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.3.0
+    image: opensearchproject/opensearch-dashboards:2.17.1
     ports:
-      - "5601:5601"
+      - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:5601:5601"
     expose:
       - "5601"
     environment:
