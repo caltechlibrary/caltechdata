@@ -1,60 +1,91 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (C) 2023-2024 CERN.
-# Copyright (C) 2024 Graz University of Technology.
-#
-# Invenio-App-RDM is free software; you can redistribute it and/or modify
-# it under the terms of the MIT License; see LICENSE file for more details.
+-- Copied from https://github.com/caltechlibrary/caltechauthors/blob/2024/scripts/migrate_11_0_to_12_0.sql, 2025-02-06 RSD
+--
+-- Update parent schema
+update
+  rdm_parents_metadata
+set
+  json = jsonb_set(
+    json,
+    '{$schema}',
+    '"local://records/parent-v3.0.0.json"'
+  )
+where
+  json->>'$schema' != 'local://records/parent-v3.0.0.json';
 
-import sys
+UPDATE rdm_parents_metadata
+SET json = jsonb_set(
+  json,
+  '{access,owned_by}',
+  jsonb_build_object('user', json->'access'->'owned_by'->0->'user')
+)
+WHERE json->'access'->'owned_by'->0->'user' is not null;
 
-from click import secho
-from flask import current_app
-from invenio_access.permissions import system_identity
-from invenio_communities.communities.records.api import Community
-from invenio_communities.communities.records.systemfields.access import ReviewPolicyEnum
-from invenio_db import db
-from invenio_rdm_records.fixtures import PrioritizedVocabulariesFixtures
-from invenio_rdm_records.proxies import current_rdm_records
-from invenio_rdm_records.records.api import RDMDraft, RDMRecord
+update
+  rdm_parents_metadata
+set
+  json = jsonb_set(
+    json,
+    '{pids}',
+    '{}'
+  );
 
+-- Update record schema
+update
+  rdm_records_metadata
+set
+  json = jsonb_set(
+    json,
+    '{$schema}',
+    '"local://records/record-v6.0.0.json"'
+  )
+where
+  json->>'$schema' != 'local://records/record-v6.0.0.json';
 
-def execute_upgrade():
+-- NOTE: You the jsonb_set will not create a multipart path if it does not exist. 
+-- You have to create each object before it's attributes.
+update
+  rdm_records_metadata
+set
+  json = jsonb_set(
+    json,
+    '{media_files}',
+    '{}'
+  );
+update
+  rdm_records_metadata
+set
+  json = jsonb_set(
+    json,
+    '{media_files,enabled}',
+    'false'
+  );
 
-    def migrate_review_policy(community_record):
-        if community_record.is_deleted:
-            return
+-- Update drafts schema
+update
+  rdm_drafts_metadata
+set
+  json = jsonb_set(
+    json,
+    '{$schema}',
+    '"local://records/record-v6.0.0.json"'    
+  )
+where
+  json->>'$schema' != 'local://records/record-v6.0.0.json';
 
-        community_record["access"].setdefault(
-            "review_policy", ReviewPolicyEnum.CLOSED.value
-        )
+update
+  rdm_drafts_metadata
+set
+  json = jsonb_set(
+    json,
+    '{media_files}',
+    '{}'
+  );
 
-
-    secho("Starting data migration...", fg="green")
-
-    # upgrading vocabularies
-    pvf = PrioritizedVocabulariesFixtures(system_identity)
-    pvf.load()
-
-    # Migrating communities
-    communities = Community.model_cls.query.all()
-
-    for community_data in communities:
-        community = Community(community_data.data, model=community_data)
-
-        # production data could have problems without it
-        if community:
-            migrate_review_policy(community)
-            community.commit()
-
-    secho("Commiting to DB", nl=True)
-    db.session.commit()
-    secho(
-        "Data migration completed, please rebuild the search indices now.",
-        fg="green",
-    )
-
-
-# if the script is executed on its own, perform the upgrade
-if __name__ == "__main__":
-    execute_upgrade()
+update
+  rdm_drafts_metadata
+set
+  json = jsonb_set(
+    json,
+    '{media_files,enabled}',
+    'false'
+  );

@@ -7,15 +7,15 @@ verify_ssl = true
 check-manifest = ">=0.25"
 
 [packages]
-pyuwsgi = ">=2.0"
 uwsgitop = ">=0.11"
 uwsgi-tools = ">=1.1.1"
 invenio-saml = "*"
-flask-babel = "2.0.0"
-invenio-app-rdm = {version = "~=11.0.0", extras = ["opensearch2", "postgresql"]}
+invenio-logging = {extras = ["sentry"]}
+invenio-app-rdm = {version = "~=13.0.0", extras = ["opensearch2", "s3"]}
+uwsgi = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.12"
 
 [pipenv]
 allow_prereleases = false

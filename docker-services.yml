@@ -19,19 +19,6 @@ services:
       - "INVENIO_SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://caltechdata:caltechdata@db/caltechdata"
       - "INVENIO_WSGI_PROXIES=2"
       - "INVENIO_RATELIMIT_STORAGE_URL=redis://cache:6379/3"
-  frontend:
-    build: ./docker/nginx/
-    image: caltechdata-frontend
-    restart: "unless-stopped"
-    ports:
-      - "80"
-      - "443"
-  cache:
-    image: redis:7
-    restart: "unless-stopped"
-    read_only: true
-    ports:
-      - "6379:6379"
   db:
     image: postgres:12.4
     restart: "unless-stopped"
@@ -75,7 +62,7 @@ services:
       nofile:
         soft: 65536
         hard: 65536
-    mem_limit: 2g
+    mem_limit: 16g
     ports:
       - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:9200:9200"
       - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:9600:9600"
@@ -89,20 +76,3 @@ services:
       # settings only for development. DO NOT use in production!
       - 'OPENSEARCH_HOSTS=["http://search:9200"]'
       - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true"
-  s3:
-    image: minio/minio
-    restart: "unless-stopped"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: CHANGE_ME
-      MINIO_ROOT_PASSWORD: CHANGE_ME
-    volumes:
-      - ./data:/data
-    command: server /data --console-address :9001
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
