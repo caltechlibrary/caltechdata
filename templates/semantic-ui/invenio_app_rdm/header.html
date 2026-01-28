@@ -10,8 +10,25 @@
 
 <div>
 <header class="theme header">
+  {%- block user_impersonation %}
+      {%- if '_impersonator_id' in session %}
+        <div class="ui negative flashed top attached manage m-0 big message">
+          <div class="ui container">
+            <div class="header">
+              <i class="ui spy big icon"></i><strong>Impersonated session</strong>
+            </div>
+            You must logout after you finish with you inquiry!
+          </div>
+        </div>
+      {%- endif %}
+  {%- endblock user_impersonation %}
+
+  {%- block site_banner %}
+      {% from 'invenio_banners/banner.html' import banner %}
+      {{ banner() }}
+  {%- endblock site_banner %}
   <div class="outer-navbar">
-    {%- block navbar %}
+      {%- block navbar %}
     <div class="ui container invenio-header-container">
       <nav id="invenio-nav" class="ui menu borderless stackable p-0">
         <div class="item logo p-0">
@@ -97,16 +114,6 @@
                   <a role="menuitem" href="{{ item.url }}">{{ item.text|safe }}</a>
                 </div>
               {% endfor %}
-              {%- if config.ACCOUNTS and current_user.is_authenticated %}
-                {% for item in current_menu.submenu('notifications').children|sort(attribute='order') if item.visible recursive %}
-                  <div class="item inbox">
-                    <a role="menuitem" href="{{ item.url }}" aria-label="{{ _("Requests") }}">
-                      <i class="fitted inbox icon"></i>
-                      <span class="mobile tablet only inline">{{ _("Inbox") }}</span>
-                    </a>
-                  </div>
-                {% endfor %}
-              {% endif %}
               <div class="item">
                 {%- include config.THEME_HEADER_LOGIN_TEMPLATE %}
               </div>

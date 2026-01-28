@@ -12,7 +12,7 @@ with prividged keys.
 EOT
 exit 1
 fi
-HOSTNAME="data.caltechlibrary.dev"
+HOSTNAME="newdata.caltechlibrary.dev"
 
 if [ ! -d ./saml ]; then 
 cat <<EOT
