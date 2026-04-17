@@ -2,11 +2,11 @@
 name = "caltechdata"
 description = "The Caltech institutional data repository"
 readme = "README.md"
-version = "13.0.0"
+version = "13.1.0"
 requires-python = ">= 3.12"
 
 dependencies = [
-  "invenio-app-rdm[opensearch2, s3]~=13.0.0",
+  "invenio-app-rdm[opensearch2, s3]~=13.1.0",
   "invenio-saml",
   "sentry-sdk>=1.45,<2.0.0",
   "python-dotenv>=0.21.0",
