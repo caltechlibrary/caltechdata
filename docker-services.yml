@@ -19,21 +19,27 @@ services:
       - "INVENIO_SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://caltechdata:caltechdata@db/caltechdata"
       - "INVENIO_WSGI_PROXIES=2"
       - "INVENIO_RATELIMIT_STORAGE_URL=redis://cache:6379/3"
+  cache:
+    image: redis:7
+    restart: "unless-stopped"
+    read_only: true
+    ports:
+      - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:6379:6379"
   db:
-    image: postgres:12.4
+    image: postgres:14.13
     restart: "unless-stopped"
     environment:
       - "POSTGRES_USER=caltechdata"
       - "POSTGRES_PASSWORD=caltechdata"
       - "POSTGRES_DB=caltechdata"
     ports:
-      - "5432:5432"
+      - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:5432:5432"
   pgadmin:
-    image: dpage/pgadmin4:5.2
+    image: dpage/pgadmin4:6
     restart: "unless-stopped"
     ports:
-      - "5050:80"
-      - "5051:443"
+      - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:5050:80"
+      - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:5051:443"
     environment:
       PGADMIN_DEFAULT_EMAIL: "coda@library.caltech.edu"
       PGADMIN_DEFAULT_PASSWORD: "caltechdata"
@@ -42,9 +48,10 @@ services:
   mq:
     image: rabbitmq:3-management
     restart: "unless-stopped"
+    hostname: mq
     ports:
-      - "15672:15672"
-      - "5672:5672"
+      - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:15672:15672"
+      - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:5672:5672"
   search:
     image: opensearchproject/opensearch:2.17.1
     restart: "unless-stopped"
