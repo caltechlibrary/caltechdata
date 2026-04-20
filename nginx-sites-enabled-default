@@ -1,10 +1,7 @@
-
-include redirect-map.conf;
-
 server {
-  
-  server_name data.caltech.edu
- 
+
+  server_name data.caltechlibrary.dev
+
   add_header Strict-Transport-Security "max-age=15768000"; # 6 months
 
   # Request ID tracing (allows end-to-end tracking of requests for better
@@ -13,7 +10,7 @@ server {
 
   # The request body is sent to the proxied server immediately as it is
   # received
-  proxy_request_buffering off;
+  proxy_request_buffering off;  
   # Sets the HTTP protocol v1.1 for proxying in order to not use the buffer
   # in case of chunked transfer encoding
   proxy_http_version 1.1;
@@ -25,11 +22,12 @@ server {
     include uwsgi_params;
     uwsgi_buffering off;
     uwsgi_request_buffering off;
-    uwsgi_param Host $host;
-    uwsgi_param X-Forwarded-For $proxy_add_x_forwarded_for;
-    uwsgi_param X-Forwarded-Proto $scheme;
+    chunked_transfer_encoding off;
+    uwsgi_param HTTP_HOST $host;
+    uwsgi_param HTTP_X_FORWARDED_FOR $proxy_add_x_forwarded_for;
+    uwsgi_param HTTP_X_FORWARDED_PROTO $scheme;
     # Pass request id to the ui server
-    uwsgi_param X-Request-ID $request_id;
+    uwsgi_param HTTP_X_REQUEST_ID $request_id;
     # X-Session-ID / X-User-ID is read by nginx and included in the logs,
     # however we don't want to expose them to clients so we are hiding them.
     uwsgi_hide_header X-Session-ID;
@@ -43,11 +41,12 @@ server {
     include uwsgi_params;
     uwsgi_buffering off;
     uwsgi_request_buffering off;
-    uwsgi_param Host $host;
-    uwsgi_param X-Forwarded-For $proxy_add_x_forwarded_for;
-    uwsgi_param X-Forwarded-Proto $scheme;
+    chunked_transfer_encoding off;
+    uwsgi_param HTTP_HOST $host;
+    uwsgi_param HTTP_X_FORWARDED_FOR $proxy_add_x_forwarded_for;
+    uwsgi_param HTTP_X_FORWARDED_PROTO $scheme;
     # Pass request id to the api server
-    uwsgi_param X-Request-ID $request_id;
+    uwsgi_param HTTP_X_REQUEST_ID $request_id;
     # X-Session-ID / X-User-ID is read by nginx and included in the logs,
     # however we don't want to expose them to clients so we are hiding them.
     uwsgi_hide_header X-Session-ID;
@@ -64,12 +63,13 @@ server {
     uwsgi_pass 127.0.0.1:5001;
     include uwsgi_params;
     uwsgi_buffering off;
+    chunked_transfer_encoding off;
     uwsgi_request_buffering off;
-    uwsgi_param Host $host;
-    uwsgi_param X-Forwarded-For $proxy_add_x_forwarded_for;
-    uwsgi_param X-Forwarded-Proto $scheme;
+    uwsgi_param HTTP_HOST $host;
+    uwsgi_param HTTP_X_FORWARDED_FOR $proxy_add_x_forwarded_for;
+    uwsgi_param HTTP_X_FORWARDED_PROTO $scheme;
     # Pass request id to api server
-    uwsgi_param X-Request-ID $request_id;
+    uwsgi_param HTTP_X_REQUEST_ID $request_id;
     # X-Session-ID / X-User-ID is read by nginx and included in the logs,
     # however we don't want to expose them to clients so we are hiding them.
     uwsgi_hide_header X-Session-ID;
@@ -78,26 +78,23 @@ server {
     client_max_body_size 500G;
   }
   # Static content is served directly by nginx and not the application server.
-  #location /static {
-  #  alias /opt/invenio/var/instance/static;
+  # location /static {
+  #  alias /home/tmorrell/.local/share/virtualenvs/caltechauthors-irdMlMEM/var/instance/static;
   #  autoindex off;
-  #} 
-  #Redirect old urls from redirect-map
-  if ( $redirect_uri ) {
-        return 301 $redirect_uri;
-    }
+  #}
+
 
 }
 
 server {
-    if ($host = data.caltech.edu) {
+    if ($host = data.caltechlibrary.dev) {
         return 301 https://$host$request_uri;
     } # managed by Certbot
 
 
-  
-  server_name data.caltech.edu
- 
+
+  server_name data.caltechlibrary.dev
+
   add_header Strict-Transport-Security "max-age=15768000";
     listen 80;
     return 404; # managed by Certbot
