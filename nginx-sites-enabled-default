@@ -1,6 +1,6 @@
 server {
 
-  server_name data.caltechlibrary.dev
+  server_name newdata.caltechlibrary.dev
 
   add_header Strict-Transport-Security "max-age=15768000"; # 6 months
 
@@ -87,13 +87,13 @@ server {
 }
 
 server {
-    if ($host = data.caltechlibrary.dev) {
+    if ($host = newdata.caltechlibrary.dev) {
         return 301 https://$host$request_uri;
     } # managed by Certbot
 
 
 
-  server_name data.caltechlibrary.dev
+  server_name newdata.caltechlibrary.dev
 
   add_header Strict-Transport-Security "max-age=15768000";
     listen 80;
