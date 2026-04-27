@@ -8,8 +8,8 @@ StandardOutput=kmsg
 StandardError=kmsg
 WorkingDirectory=/Sites/caltechdata
 EnvironmentFile=/Sites/caltechdata/.env
-Environment="PATH=/Sites/caltechdata/uv-env-39/bin"
-ExecStart=/Sites/caltechdata/uv-env-39/bin/pipenv run /Sites/caltechdata/uv-env-39/bin/uwsgi --logger syslog:inveniordm_ui uwsgi_ui.ini
+Environment="PATH=/Sites/caltechdata/uv-3.9/bin"
+ExecStart=/Sites/caltechdata/uv-3.9/bin/pipenv run /Sites/caltechdata/uv-3.9/bin/uwsgi --logger syslog:inveniordm_ui uwsgi_ui.ini
 
 [Install]
 WantedBy=multi-user.target
