@@ -15,7 +15,7 @@ flask-babel = "2.0.0"
 setuptools = "<82"
 flask-security-invenio = "<4"
 passlib = "<3"
-invenio-app-rdm = {extras = ["opensearch2", "postgresql"], version = "~=11.0.0"}
+invenio-app-rdm = {extras = ["opensearch2", "postgresql"], version = "~=10.0.0"}
 xmlsec = "1.3.13"
 
 [requires]
