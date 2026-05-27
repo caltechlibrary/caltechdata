@@ -12,7 +12,7 @@ with prividged keys.
 EOT
 exit 1
 fi
-HOSTNAME="newdata.caltechlibrary.dev"
+HOSTNAME="data.caltech.edu"
 
 if [ ! -d ./saml ]; then 
 cat <<EOT
@@ -33,7 +33,7 @@ cp -vp "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" ./saml/
 
 # This converts /etc/letsencrypt/live/$HOSTNAME/privkey.pem 
 # to ./saml/sp.key
-if openssl rsa -in ./saml/privkey.pem -out ./saml/sp.key; then
+if openssl pkey -in ./saml/privkey.pem -out ./saml/sp.key; then
 	echo "./saml/sp.key created"
 	chmod ug=r,o= ./saml/sp.key
 else
