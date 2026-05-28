@@ -26,7 +26,7 @@ services:
     ports:
       - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:6379:6379"
   db:
-    image: postgres:14.13
+    image: postgres:12.4
     restart: "unless-stopped"
     environment:
       - "POSTGRES_USER=caltechdata"
