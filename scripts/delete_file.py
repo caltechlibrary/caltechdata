@@ -3,7 +3,8 @@ import click, os
 from flask.cli import with_appcontext
 from invenio_db import db
 from invenio_files_rest.models import ObjectVersion
-from invenio_utilities_tuw.utils import get_identity_for_user, get_record_service
+from invenio_rdm_records.proxies import current_rdm_records_service as service
+from invenio_utilities_tuw.utils import get_identity_for_user
 
 @click.command('delete_file')
 @click.argument('recid', type=str)
@@ -13,8 +14,7 @@ from invenio_utilities_tuw.utils import get_identity_for_user, get_record_servic
 def delete_file(recid, filename, user):
     """Delete a file in a published record."""
     identity = get_identity_for_user(user)
-    service = get_record_service()
-    record = service.read(id_=recid,identity=identity)._record
+    record = service.read_draft(id_=recid,identity=identity)._record
     bucket = record.files.bucket
     key = filename
 
