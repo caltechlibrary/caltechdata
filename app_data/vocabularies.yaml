@@ -17,3 +17,6 @@ licenses:
 names:
   pid-type: names
   data-file: vocabularies/names_orcid.yaml
+caltechgroups:
+  pid-type: ctgrp
+  data-file: vocabularies/caltech_groups.yaml
