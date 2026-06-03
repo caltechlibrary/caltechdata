@@ -12,7 +12,7 @@ with prividged keys.
 EOT
 exit 1
 fi
-HOSTNAME="newdata.caltechlibrary.dev"
+HOSTNAME="data.caltechlibrary.dev"
 
 if [ ! -d ./saml ]; then 
 cat <<EOT
@@ -33,7 +33,8 @@ cp -vp "/etc/letsencrypt/live/${HOSTNAME}/fullchain.pem" ./saml/
 
 # This converts /etc/letsencrypt/live/$HOSTNAME/privkey.pem 
 # to ./saml/sp.key
-if openssl rsa -in ./saml/privkey.pem -out ./saml/sp.key; then
+# switched from rsa to pkey
+if openssl pkey -in ./saml/privkey.pem -out ./saml/sp.key; then
 	echo "./saml/sp.key created"
 	chmod ug=r,o= ./saml/sp.key
 else
@@ -54,3 +55,9 @@ fi
 # Cleanup unneeded files after conversion
 rm ./saml/privkey.pem
 rm ./saml/fullchain.pem
+
+# Make sure permissions are set so RDM user can access them.
+chmod 640 ./saml/sp.key
+chmod 644 ./saml/sp.cert
+chmod 750 ./saml
+
