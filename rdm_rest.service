@@ -3,7 +3,7 @@ Description=Launch InvenioRDM Web Interface
 
 [Service]
 Type=simple
-User=tmorrell
+User=inveniordm
 StandardOutput=kmsg
 StandardError=kmsg
 WorkingDirectory=/Sites/caltechdata
