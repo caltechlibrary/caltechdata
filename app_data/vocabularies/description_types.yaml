@@ -40,3 +40,9 @@
   title:
     en: External Files
     de: Sonstige
+- id: attached-files
+  props:
+    datacite: Other
+  title:
+    en: Attached Files
+    de: Sonstige
