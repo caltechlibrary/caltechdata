@@ -9,6 +9,7 @@ dependencies = [
   "invenio-app-rdm[opensearch2, s3]~=13.1.0",
   "invenio-saml",
   "invenio-s3",
+  "invenio-rdm-records",
   "setuptools<82",
   "sentry-sdk>=1.45,<2.0.0",
   "python-dotenv>=0.21.0",
@@ -36,4 +37,4 @@ no-binary-package = [
 
 [tool.uv.sources]
 invenio-saml = { git = "https://github.com/caltechlibrary/invenio-saml", tag = "maint-v1.x" }
-invenio-s3 = {git = "https://github.com/caltechlibrary/invenio-s3", tag = "maint-v3.x"}
+invenio-rdm-records = {git = "https://github.com/caltechlibrary/invenio-rdm-records", tag = "maint-20.x"}
