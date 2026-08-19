@@ -62,6 +62,7 @@ services:
       - "DISABLE_INSTALL_DEMO_CONFIG=true"
       - "DISABLE_SECURITY_PLUGIN=true"
       - "discovery.type=single-node"
+      - "path.repo=/usr/share/opensearch/backups"
     ulimits:
       memlock:
         soft: -1
@@ -73,6 +74,9 @@ services:
     ports:
       - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:9200:9200"
       - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:9600:9600"
+    volumes:
+      - /opt/rdm_opensearch_data_migrated:/usr/share/opensearch/data
+      - /opt/rdm_opensearch_backups:/usr/share/opensearch/backups
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:2.17.1
     ports:
