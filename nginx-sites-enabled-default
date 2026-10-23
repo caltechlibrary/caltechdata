@@ -1,6 +1,6 @@
 server {
 
-  server_name newdata.caltechlibrary.dev
+  server_name newdata.caltechlibrary.dev;
 
   add_header Strict-Transport-Security "max-age=15768000"; # 6 months
 
@@ -93,7 +93,7 @@ server {
 
 
 
-  server_name newdata.caltechlibrary.dev
+  server_name newdata.caltechlibrary.dev;
 
   add_header Strict-Transport-Security "max-age=15768000";
     listen 80;
