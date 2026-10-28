@@ -13,3 +13,53 @@
   })();
  </script>
  <!-- End Matomo Code -->
+<script
+  src="https://js.sentry-cdn.com/8bbdec97a958b7d94b7c69dff0623a46.min.js"
+  crossorigin="anonymous"
+  data-lazy="no"
+></script>
+<script>
+  window.sentryOnLoad = function () {
+    Sentry.init({
+      allowUrls: [/data\.caltech\.edu/],
+      // httpClientIntegration only attaches headers when sendDefaultPii is on;
+      // beforeSend strips everything except the Cloudflare headers we want.
+      sendDefaultPii: true,
+      beforeSend: function (event) {
+        var keep = ["cf-ray", "cf-mitigated", "cf-cache-status"];
+        var response = event.contexts && event.contexts.response;
+        if (response) {
+          var headers = response.headers || {};
+          var kept = {};
+          Object.keys(headers).forEach(function (name) {
+            var lower = name.toLowerCase();
+            if (keep.indexOf(lower) !== -1) {
+              kept[lower] = headers[name];
+              event.tags = event.tags || {};
+              event.tags[lower.replace(/-/g, "_")] = headers[name];
+            }
+          });
+          response.headers = kept;
+          delete response.cookies;
+        }
+        if (event.request) {
+          delete event.request.cookies;
+          if (event.request.headers) {
+            var ua = event.request.headers["User-Agent"];
+            var referer = event.request.headers["Referer"];
+            event.request.headers = {};
+            if (ua) event.request.headers["User-Agent"] = ua;
+            if (referer) event.request.headers["Referer"] = referer;
+          }
+        }
+        if (event.user) {
+          delete event.user.ip_address;
+        }
+        return event;
+      },
+    });
+    Sentry.lazyLoadIntegration("httpClientIntegration").then(function (integration) {
+      Sentry.addIntegration(integration({ failedRequestStatusCodes: [403, 429, [500, 599]] }));
+    });
+  };
+</script>
