@@ -21,9 +21,11 @@
 #     (package.json engines.node >= 18), as caltechauthors; v14 raises the
 #     Node floor, which belongs to the later upgrade step, not here.
 #   - xmlsec and lxml are built from source (pyproject no-binary-package), so
-#     libxslt1-dev is added to the package list (libxmlsec1-dev already depends
-#     on libxmlsec1t64-openssl). A first guess, libxmlsec1-openssl, does not
-#     exist on 24.04 and failed the package step on the first boot.
+#     libxslt1-dev and zlib1g-dev are added to the package list (libxmlsec1-dev
+#     already depends on libxmlsec1t64-openssl). A first guess, libxmlsec1-openssl,
+#     does not exist on 24.04 and failed the package step on the first boot; a
+#     missing zlib1g-dev then failed the lxml link in uv sync. With both fixed,
+#     uv sync completed on the VM.
 #   - Granian flags are caltechauthors' (--workers 6 --blocking-threads 5
 #     --workers-max-rss 1800), a starting point and not a ceiling; DR-0001
 #     calls for a large-upload test to tune them.
@@ -47,6 +49,7 @@ packages:
   - libxmlsec1-dev
   - libxslt1-dev # xmlsec and lxml are built from source (pyproject [tool.uv] no-binary-package);
                  # libxmlsec1-dev above already pulls in libxmlsec1t64-openssl on 24.04
+  - zlib1g-dev   # lxml's link step needs -lz (found on the first boot, 2026-10-28)
   - docker.io
   - docker-compose-v2
   - makepasswd
