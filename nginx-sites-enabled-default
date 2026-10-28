@@ -15,67 +15,63 @@ server {
   # in case of chunked transfer encoding
   proxy_http_version 1.1;
 
-  # Proxying to the application server
+  # Proxying to the application server (Granian, plain HTTP; this was uWSGI's
+  # uwsgi protocol before the Granian move).
+  proxy_buffering off;
+
   ## UI server
   location / {
-    uwsgi_pass 127.0.0.1:5000;
-    include uwsgi_params;
-    uwsgi_buffering off;
-    uwsgi_request_buffering off;
-    chunked_transfer_encoding off;
-    uwsgi_param HTTP_HOST $host;
-    uwsgi_param HTTP_X_FORWARDED_FOR $proxy_add_x_forwarded_for;
-    uwsgi_param HTTP_X_FORWARDED_PROTO $scheme;
+    proxy_pass http://127.0.0.1:5000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
     # Pass request id to the ui server
-    uwsgi_param HTTP_X_REQUEST_ID $request_id;
+    proxy_set_header X-Request-ID $request_id;
     # X-Session-ID / X-User-ID is read by nginx and included in the logs,
     # however we don't want to expose them to clients so we are hiding them.
-    uwsgi_hide_header X-Session-ID;
-    uwsgi_hide_header X-User-ID;
+    proxy_hide_header X-Session-ID;
+    proxy_hide_header X-User-ID;
     # Max upload size (except for files) is set to 100mb as default.
     client_max_body_size 100m;
   }
   ## Most API
+  # No trailing slash on proxy_pass: nginx forwards /api/... unmodified and
+  # Granian's --url-path-prefix /api in rdm_rest.service strips it. The two are
+  # a matched pair (caltechauthors DR-0007): change one without the other and
+  # every /api request breaks.
   location /api {
-    uwsgi_pass 127.0.0.1:5001;
-    include uwsgi_params;
-    uwsgi_buffering off;
-    uwsgi_request_buffering off;
-    chunked_transfer_encoding off;
-    uwsgi_param HTTP_HOST $host;
-    uwsgi_param HTTP_X_FORWARDED_FOR $proxy_add_x_forwarded_for;
-    uwsgi_param HTTP_X_FORWARDED_PROTO $scheme;
+    proxy_pass http://127.0.0.1:5001;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
     # Pass request id to the api server
-    uwsgi_param HTTP_X_REQUEST_ID $request_id;
-    # X-Session-ID / X-User-ID is read by nginx and included in the logs,
-    # however we don't want to expose them to clients so we are hiding them.
-    uwsgi_hide_header X-Session-ID;
-    uwsgi_hide_header X-User-ID;
+    proxy_set_header X-Request-ID $request_id;
+    proxy_hide_header X-Session-ID;
+    proxy_hide_header X-User-ID;
     # Max upload size (except for files) is set to 100mb as default.
     client_max_body_size 100m;
   }
   ## API files
   # Another location is defined in order to allow large file uploads in the files
   # API without exposing the other parts of the application to receive huge
-  # request bodies.
-  location ~ /api/records/.+/draft/files/.+/content {
+  # request bodies. Optional trailing /<part-number> and slash match the
+  # multipart file-content requests.
+  location ~ ^/api/records/.+/draft/files/.+/content(?:/[0-9]+)?/?$ {
     gzip off;
-    uwsgi_pass 127.0.0.1:5001;
-    include uwsgi_params;
-    uwsgi_buffering off;
-    chunked_transfer_encoding off;
-    uwsgi_request_buffering off;
-    uwsgi_param HTTP_HOST $host;
-    uwsgi_param HTTP_X_FORWARDED_FOR $proxy_add_x_forwarded_for;
-    uwsgi_param HTTP_X_FORWARDED_PROTO $scheme;
+    proxy_pass http://127.0.0.1:5001;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
     # Pass request id to api server
-    uwsgi_param HTTP_X_REQUEST_ID $request_id;
-    # X-Session-ID / X-User-ID is read by nginx and included in the logs,
-    # however we don't want to expose them to clients so we are hiding them.
-    uwsgi_hide_header X-Session-ID;
-    uwsgi_hide_header X-User-ID;
+    proxy_set_header X-Request-ID $request_id;
+    proxy_hide_header X-Session-ID;
+    proxy_hide_header X-User-ID;
     # Max upload size for files is set to 500GB (configure as needed).
     client_max_body_size 500G;
+    # uWSGI's 120 s socket timeouts no longer apply; these do. A starting
+    # point, to be set from the Stage 1 large-upload test (caltechdata DR-0001).
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
   }
   # Static content is served directly by nginx and not the application server.
   # location /static {

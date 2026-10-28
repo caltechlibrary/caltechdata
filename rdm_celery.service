@@ -1,14 +1,22 @@
 [Unit]
 Description=Launch InvenioRDM Celery Task
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+# Wants= on rdm.target propagates start only; stopping the target
+# stops a member unit only if the member declares PartOf=.
+PartOf=rdm.target
 
 [Service]
 Type=simple
-User=inveniordm
-StandardOutput=kmsg
-StandardError=kmsg
+User=ubuntu
+StandardOutput=journal
+StandardError=journal
 WorkingDirectory=/Sites/caltechdata
 EnvironmentFile=/Sites/caltechdata/.env
-ExecStart=/snap/bin/uv run celery --app invenio_app.celery worker --beat --events --loglevel INFO
+ExecStart=/home/ubuntu/.local/bin/uv run --no-sync celery --app invenio_app.celery worker --beat --events --loglevel INFO
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

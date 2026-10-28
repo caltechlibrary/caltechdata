@@ -13,9 +13,7 @@ dependencies = [
   "setuptools<82",
   "sentry-sdk>=1.45,<2.0.0",
   "python-dotenv>=0.21.0",
-  "uwsgi>=2.0",
-  "uwsgitop>=0.11",
-  "uwsgi-tools>=1.1.1",
+  "granian",
   "lxml-html-clean>=0.1.1",
 ]
 
