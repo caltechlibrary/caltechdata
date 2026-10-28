@@ -127,6 +127,11 @@ EOS
 #!/bin/bash
 echo "apt-get $*" >> "$STUB_LOG"
 if [ -n "${STUB_APT_RC:-}" ]; then echo "E: Unable to locate package nginx-common" >&2; exit "$STUB_APT_RC"; fi
+# a version that the archive has since replaced cannot be fetched by number (seen on nginx-stage, 2026-10-28:
+# 1.24.0-2ubuntu7.18 was installed and the archive only had 7.19); the unpinned package still can
+if [ -n "${STUB_APT_NO_PINNED:-}" ]; then
+  case "$*" in *=*) echo "E: Can't find a source to download version '${2#*=}' of 'nginx-common:arm64'" >&2; exit 100;; esac
+fi
 [ "${1:-}" = download ] && : > "nginx-common_${2#*=}_all.deb"
 exit 0
 EOS
@@ -716,6 +721,30 @@ t_a_failed_download_is_unavailable_and_changes_nothing() {
   run STUB_APT_RC=100 -- $(stdv apply) --yes --no-logagent --migrate-legacy
   eq "$RC" 69 "exit"; has "$ERR" "nginx-common" "names the package"
   eq "$(tree_sig "$CASE_DIR/etc")" "$before" "nothing changed"; eq "$(n_backups)" 0 "no backup"
+}
+t_a_superseded_installed_version_falls_back_to_the_archives_file() {
+  new_case $FUNCNAME; make_legacy
+  migrate_stock() { run STUB_APT_NO_PINNED=1 -- $(stdv apply) --yes --no-logagent --migrate-legacy; }
+  migrate_stock; eq "$RC" 0 "exit (stderr: $ERR)"
+  cmp -s "$CASE_DIR/etc/nginx.conf" "$CASE_DIR/pkg/etc/nginx/nginx.conf" || fail "nginx.conf is not the package's file"
+  has "$(cat "$CASE_DIR/stub.log")" "apt-get download nginx-common=1.24.0-2ubuntu7.18" "the installed version was tried first"
+  has "$(grep '^apt-get' "$CASE_DIR/stub.log" | tail -1)" "apt-get download nginx-common" "then the archive's own"
+  hasnt "$(grep '^apt-get' "$CASE_DIR/stub.log" | tail -1)" "=" "the second request is not pinned"
+  has "$ERR" "no longer" "says the installed version is gone from the archive"
+}
+t_the_archives_file_must_still_match_dpkg() {
+  # the fallback widens where the file may come from, never what it must be: dpkg's md5 for the installed version
+  new_case $FUNCNAME; make_legacy; local before; before=$(tree_sig "$CASE_DIR/etc")
+  run STUB_APT_NO_PINNED=1 STUB_PKG_TAMPER=1 -- $(stdv apply) --yes --no-logagent --migrate-legacy
+  eq "$RC" 65 "exit"; has "$ERR" "md5" "says the checksum differs"
+  eq "$(tree_sig "$CASE_DIR/etc")" "$before" "nothing changed"; eq "$(n_backups)" 0 "no backup"
+}
+t_nothing_to_download_at_all_is_still_unavailable() {
+  new_case $FUNCNAME; make_legacy; local before; before=$(tree_sig "$CASE_DIR/etc")
+  run STUB_APT_NO_PINNED=1 STUB_APT_RC=100 -- $(stdv apply) --yes --no-logagent --migrate-legacy
+  eq "$RC" 69 "exit"; has "$ERR" "nginx-common" "names the package"
+  has "$ERR" "apt-get update" "says what to try when the package index is stale (nginx-stage, 2026-10-28)"
+  eq "$(tree_sig "$CASE_DIR/etc")" "$before" "nothing changed"
 }
 t_a_package_file_that_does_not_match_dpkg_is_wrong_data() {
   new_case $FUNCNAME; make_legacy; local before; before=$(tree_sig "$CASE_DIR/etc")

@@ -384,14 +384,22 @@ fetch_stock() {
   [ -n "$ver" ] || die $EX_NOINPUT "cannot restore the package's nginx.conf: dpkg-query ($DPKG_QUERY_BIN) cannot say which version of nginx-common is installed"
   mkdir -p "$WORK/pkg" || die $EX_IOERR "could not make $WORK/pkg"
   if ! ( cd "$WORK/pkg" && "$APT_GET_BIN" download "nginx-common=$ver" ) > "$WORK/apt.out" 2>&1; then
-    cat "$WORK/apt.out" >&2
-    die $EX_UNAVAILABLE "apt-get could not download nginx-common=$ver; nothing was changed"
+    # A host that has not taken the latest update has a version the archive no longer carries (seen on
+    # nginx-stage, 2026-10-28: 1.24.0-2ubuntu7.18 installed, only 7.19 left). The archive's current package
+    # is tried instead. This widens where the file may come from, never what it must be: the md5 check
+    # below is against what dpkg recorded for the INSTALLED version, so a changed file is still refused.
+    echo "$PROG: nginx-common=$ver is no longer in the archive; trying the archive's current nginx-common (its nginx.conf is used only if its md5 is the one dpkg recorded for $ver)" >&2
+    rm -f "$WORK"/pkg/nginx-common_*.deb
+    if ! ( cd "$WORK/pkg" && "$APT_GET_BIN" download nginx-common ) > "$WORK/apt.out" 2>&1; then
+      cat "$WORK/apt.out" >&2
+      die $EX_UNAVAILABLE "apt-get could not download nginx-common=$ver or the archive's current nginx-common; nothing was changed (if the package index is stale, run apt-get update and repeat the command)"
+    fi
   fi
   deb=$(ls "$WORK"/pkg/nginx-common_*.deb 2>/dev/null | head -1)
   [ -n "$deb" ] || die $EX_UNAVAILABLE "apt-get download left no .deb for nginx-common=$ver; nothing was changed"
   "$DPKG_DEB_BIN" --fsys-tarfile "$deb" 2>/dev/null | tar -xO ./etc/nginx/nginx.conf > "$RENDER/nginx.conf" 2>/dev/null
   got=$(md5_of "$RENDER/nginx.conf")
-  [ "$got" = "$STOCK_MD5" ] || die $EX_DATA "the nginx.conf in the downloaded nginx-common=$ver has md5 $got, but dpkg recorded md5 $STOCK_MD5; nothing was changed"
+  [ "$got" = "$STOCK_MD5" ] || die $EX_DATA "the nginx.conf in the downloaded nginx-common package has md5 $got, but dpkg recorded md5 $STOCK_MD5 for the installed $ver; nothing was changed"
 }
 
 # prepare_legacy is run by check and apply after render_all. It refuses a legacy host unless
