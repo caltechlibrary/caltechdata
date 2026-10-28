@@ -37,12 +37,6 @@ We currently deploy CaltechDATA on a m6i.xlarge AWS EC2 instance with Ubuntu
 file](https://github.com/caltechlibrary/cloud-init-examples/blob/main/caltechdata-init.yaml)
 to do most of the initial setup.
 
-### Install NVM
-
-We haven't gotten NVM to install with cloud-init. Run `curl -o-
-https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash`, then
-reboot and type `nvm install 14`
-
 ### Install InvenioRDM
 
 Clone this repository into /Sites, then go to that directory
@@ -52,16 +46,13 @@ invenio-cli install
 invenio-cli services setup --no-demo-data
 ```
 
-You'll need to add .env file to the repository directory, which includes secrets:
+You'll need a .env file in /Sites/caltechdata, which includes secrets.
+Copy [.env.example](.env.example), which documents each variable, and fill in
+the blanks:
 
 ```
-INVENIO_DATACITE_PASSWORD=
-INVENIO_SECRET_KEY=
-INVENIO_S3_ACCESS_KEY_ID=
-INVENIO_S3_SECRET_ACCESS_KEY=
-FLASK_ENV=
-INVENIO_LOGGING_CONSOLE_LEVEL=
-INVENIO_MAIL_PASSWORD=
+cp .env.example .env
+chmod 600 .env
 ```
 
 This configuration uses S3 for storage. You need to change the bucket name with
