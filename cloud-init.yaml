@@ -483,17 +483,28 @@ write_files:
       INVENIO_SEARCH_HOSTS=["localhost:9200"]
       INVENIO_DATACITE_ENABLED=false
       INVENIO_FILES_REST_STORAGE_FACTORY=invenio_files_rest.storage.pyfs_storage_factory
+      INVENIO_TRUSTED_HOSTS=["localhost","127.0.0.1","0.0.0.0"]
       EOT
       chmod 600 .env
 
       echo "Initialising the empty instance with 'invenio-cli services setup'"
       echo "(no demo data). UV_NO_SYNC keeps its 'uv run' calls from re-syncing"
       echo "the environment, as --no-sync does in the systemd units (caltechauthors"
-      echo "DR-0001). The .env is handed over with UV_ENV_FILE, not sourced: bash"
-      echo "would strip the quotes inside INVENIO_SEARCH_HOSTS=[\"localhost:9200\"]"
-      echo "and leave a value Invenio cannot parse; systemd and uv's dotenv parser"
-      echo "keep it. Unverified until the first boot."
-      UV_NO_SYNC=1 UV_ENV_FILE=.env invenio-cli services setup --no-demo-data
+      echo "DR-0001). The .env is exported one line at a time, not sourced and not"
+      echo "given to uv with UV_ENV_FILE: sourcing in bash and uv's dotenv parser both"
+      echo "strip the quotes inside INVENIO_SEARCH_HOSTS=[\"localhost:9200\"], leaving"
+      echo "[localhost:9200], which opensearch-py rejects as a host (found on the first"
+      echo "run, 2026-10-28). Exporting each line whole keeps the text as written."
+      while IFS= read -r envline; do
+        # shellcheck disable=SC2163  # the whole line, NAME=value, is what is exported
+        [ -n "$envline" ] && export "$envline"
+      done < .env
+      UV_NO_SYNC=1 invenio-cli services setup --no-demo-data
+      echo "NOTE: invenio.cfg sets TRUSTED_HOSTS to data.caltech.edu alone, so every"
+      echo "request to a test instance is refused with 'Host ... is not trusted'"
+      echo "(HTTP 400). INVENIO_TRUSTED_HOSTS above allows localhost and the loopback"
+      echo "addresses. To browse the instance from another machine, add the VM's"
+      echo "address or name to that list in .env and restart rdm and rdm_rest."
       echo "NOTE: invenio.cfg sets the S3 storage factory and the OSN endpoint."
       echo "This test instance overrides the factory with local file storage"
       echo "(INVENIO_FILES_REST_STORAGE_FACTORY above), so nothing here can write"
