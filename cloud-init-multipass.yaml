@@ -24,15 +24,19 @@
 #     (caltechauthors skips it because clasm's restore replaces the data).
 #   - LOCAL file storage, not S3/OSN: .env overrides FILES_REST_STORAGE_FACTORY
 #     with Invenio's own pyfs factory and carries no S3 credentials, so the
-#     instance cannot write to OSN. DATACITE is switched off in .env because
+#     instance cannot write to OSN. The script also makes a local files location
+#     the default: services setup creates default-location as s3://default
+#     (.invenio says file_storage = S3), which the local factory cannot open. DATACITE is switched off in .env because
 #     invenio.cfg has DATACITE_ENABLED = True.
 #   - Postgres 14.13 (docker-services.yml), from DR-0001.
 #   - Branch default is `rsdoiel`: `main` has no Granian code.
 #   - nginx comes from nginx-deploy.bash, which caltechdata does not have yet.
 #     setup_caltechdata.bash stops with a message until it is ported.
-#   - Python 3.12 via uv (pyproject requires-python >= 3.12) and Node 18
-#     (package.json engines.node >= 18), as caltechauthors; v14 raises the
-#     Node floor, which belongs to the later upgrade step, not here.
+#   - Python 3.12 via uv (pyproject requires-python >= 3.12) and Node 24, the
+#     current LTS, as caltechauthors does since its PR #190 (a Node security
+#     fix). package.json only requires >= 18, so 24 also meets RDM v14's floor
+#     ahead of that upgrade. Node 24 with this repository's asset build has not
+#     been run yet: the 2026-10-28 boot built the assets with Node 18.
 #   - xmlsec and lxml are built from source (pyproject no-binary-package), so
 #     libxslt1-dev and zlib1g-dev are added to the package list (libxmlsec1-dev
 #     already depends on libxmlsec1t64-openssl). A first guess, libxmlsec1-openssl,
@@ -43,7 +47,10 @@
 #     --workers-max-rss 1800), a starting point and not a ceiling; DR-0001
 #     calls for a large-upload test to tune them.
 #
-# Not yet booted: nothing in this file has run on a VM.
+# Booted once, 2026-10-28, as caltechdata-granian-test. The pieces ran and
+# verify_rdm_boot.bash passed 6 of 6, but the boot was resumed in steps after
+# three fixes (two missing packages, the .env export, the local files location),
+# so the corrected file has not run whole on a fresh VM.
 package_update: true
 package_upgrade: true
 fqdn: caltechdata-granian.local
@@ -88,7 +95,7 @@ write_files:
       #!/bin/bash
       # Installs uv, a uv-managed Python 3.12, invenio-cli (via "uv tool
       # install", not pip -- no PEP 668 externally-managed-environment
-      # dance needed), and Node 18 -- everything
+      # dance needed), and Node 24 -- everything
       # setup_caltechdata.bash needs. Run once at boot via
       # runcmd; idempotent if rerun.
       set -euo pipefail
@@ -107,10 +114,10 @@ write_files:
       echo "Installing invenio-cli as a uv tool (isolated venv, own Python -- independent of any project's Python pin)..."
       sudo -u ubuntu -H bash -c 'export PATH="$HOME/.local/bin:$PATH"; uv tool install "invenio-cli==1.11.0"'
 
-      echo "Installing nvm + Node 18 for the ubuntu user..."
-      # Node >=18 is this repo's own package.json requirement
-      # (engines.node) for RDM v13.1.2 -- not v14's stricter Node
-      # 22/24+ floor, which doesn't apply to this pin.
+      echo "Installing nvm + Node 24 for the ubuntu user..."
+      # Node 24 is the current LTS. This repo's package.json only
+      # requires >=18 (engines.node), so 24 also meets RDM v14's
+      # 22/24+ floor ahead of that upgrade.
       #
       # Real bug found via live testing on granian-rdm-v14 (2026-07-27,
       # carried over as a precaution here too): git-cloning nvm directly
@@ -128,8 +135,8 @@ write_files:
         fi
         export NVM_DIR="$HOME/.nvm"
         [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-        nvm install 18
-        nvm alias default 18
+        nvm install 24
+        nvm alias default 24
         echo "" >> "$HOME/.bashrc"
         echo "export NVM_DIR=\"\$HOME/.nvm\"" >> "$HOME/.bashrc"
         echo "[ -s \"\$NVM_DIR/nvm.sh\" ] && . \"\$NVM_DIR/nvm.sh\"" >> "$HOME/.bashrc"
@@ -373,7 +380,7 @@ write_files:
 
       export NVM_DIR="$HOME/.nvm"
       [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-      nvm use 18
+      nvm use 24
       export PATH="$HOME/.local/bin:$PATH"
 
       # Real bug found via live testing on granian-rdm-v14 (2026-07-27,
@@ -381,7 +388,7 @@ write_files:
       # devDependencies pin @rspack/core <1.7.0 while @rspack/cli 2.1.5's
       # own peer dependency wants ^2.0.0-0 -- an inconsistency in that
       # package's own package.json, not anything specific to this
-      # project. npm (10.x, strict-by-default peer resolution) refuses to
+      # project. npm (strict-by-default peer resolution) refuses to
       # install at all otherwise. Setting this persists to ~/.npmrc, so
       # it applies automatically to the npm install invenio-cli runs
       # internally during "invenio-cli install".
@@ -479,6 +486,7 @@ write_files:
       # 2=celery-result/3=ratelimit/4=communities-identities-cache) matches
       # cookiecutter-invenio-rdm's own conventional default split; RabbitMQ
       # has no custom auth in docker-services.yml, so guest/guest applies.
+      # .env.example documents every variable; keep the two in step.
       INVENIO_SECRET_KEY="$(makepasswd -char 64)"
       cat <<EOT >.env
       INVENIO_SECRET_KEY=${INVENIO_SECRET_KEY}
@@ -509,10 +517,23 @@ write_files:
       echo "[localhost:9200], which opensearch-py rejects as a host (found on the first"
       echo "run, 2026-10-28). Exporting each line whole keeps the text as written."
       while IFS= read -r envline; do
+        # blank lines and comments are skipped, as systemd's EnvironmentFile skips them,
+        # so an .env copied from .env.example works here too
+        case "$envline" in ''|'#'*) continue ;; esac
         # shellcheck disable=SC2163  # the whole line, NAME=value, is what is exported
-        [ -n "$envline" ] && export "$envline"
+        export "$envline"
       done < .env
       UV_NO_SYNC=1 invenio-cli services setup --no-demo-data
+
+      echo "Making local storage the default files location. services setup created"
+      echo "default-location as s3://default, because .invenio says file_storage = S3,"
+      echo "and the local-file storage factory set in .env cannot open an s3:// URI: the"
+      echo "first upload failed with UnsupportedProtocol (found 2026-10-28). Location"
+      echo "rows are data, not config, so the factory override alone is not enough."
+      echo "--default turns the s3 row's default flag off."
+      INSTANCE_PATH="$(UV_NO_SYNC=1 uv run --no-sync invenio shell --no-term-title -c 'print(app.instance_path)' 2>/dev/null | tail -1)"
+      mkdir -p "${INSTANCE_PATH}/data"
+      UV_NO_SYNC=1 uv run --no-sync invenio files location create --default local-files "${INSTANCE_PATH}/data"
       echo "NOTE: invenio.cfg sets TRUSTED_HOSTS to data.caltech.edu alone, so every"
       echo "request to a test instance is refused with 'Host ... is not trusted'"
       echo "(HTTP 400). INVENIO_TRUSTED_HOSTS above allows localhost and the loopback"
