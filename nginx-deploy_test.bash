@@ -65,6 +65,7 @@ case "$mode" in
     rc=${STUB_NGINX_T_RC:-0}
     if [ "$conf" = "${STUB_ETC:-/nonexistent}/nginx.conf" ] && [ -n "${STUB_NGINX_INSTALLED_RC:-}" ]; then rc=$STUB_NGINX_INSTALLED_RC; fi
     if [ "$rc" != 0 ]; then echo "${STUB_NGINX_T_MSG:-nginx: [emerg] stub says the configuration is wrong}" >&2; exit "$rc"; fi
+    [ -z "${STUB_NGINX_T_WARN:-}" ] || echo "$STUB_NGINX_T_WARN" >&2
     echo "nginx: the configuration file $conf syntax is ok" >&2
     echo "nginx: configuration file $conf test is successful" >&2
     ;;
@@ -823,6 +824,33 @@ t_the_ssl_params_snippet_sends_no_headers() {
   new_case $FUNCNAME
   eq "$(grep -v '^[[:space:]]*#' "$HERE/nginx/snippets/ssl-params.conf" | grep -c 'add_header')" 0 "add_header outside a comment"
   has "$(cat "$HERE/nginx/snippets/ssl-params.conf")" "ssl_dhparam /etc/nginx/dhparam.pem;" "it names the DH parameters the script requires"
+}
+
+# ---- another site answering for the same name (found writing the runbook, 2026-10-28) ----------
+# nginx -t PASSES when two enabled sites claim one server_name on one port: it only warns "conflicting server
+# name ... ignored" and serves whichever it read first. A host with an older hand-made site still linked from
+# sites-enabled would then answer from the old file while this script reports success.
+
+CONFLICT='nginx: [warn] conflicting server name "host.example.org" on 0.0.0.0:443, ignored'
+t_a_conflicting_server_name_is_refused() {
+  new_case $FUNCNAME; ln -s /nowhere "$CASE_DIR/etc/sites-enabled/old-site"; local before; before=$(tree_sig "$CASE_DIR/etc")
+  run STUB_NGINX_T_WARN="$CONFLICT" -- $(std) --no-logagent
+  eq "$RC" 65 "exit"; has "$ERR" "conflicting server name" "quotes nginx's warning"
+  has "$ERR" "sites-enabled" "names the directory to look in"; has "$ERR" "old-site" "lists the enabled sites"
+  has "$ERR" "do not delete" "says to move the link, not delete the file"
+  eq "$(tree_sig "$CASE_DIR/etc")" "$before" "nothing changed"
+}
+t_apply_refuses_a_conflicting_server_name_before_any_change() {
+  new_case $FUNCNAME; local before; before=$(tree_sig "$CASE_DIR/etc")
+  run STUB_NGINX_T_WARN="$CONFLICT" -- $(stdv apply) --yes --no-logagent
+  eq "$RC" 65 "exit"; has "$ERR" "conflicting server name" "says why"
+  eq "$(tree_sig "$CASE_DIR/etc")" "$before" "nothing changed"; eq "$(n_backups)" 0 "no backup was made"
+}
+t_an_unrelated_nginx_warning_does_not_block() {
+  # only the conflicting-name warning is a refusal; nginx -t prints others (types_hash, for one) on healthy hosts
+  new_case $FUNCNAME
+  run STUB_NGINX_T_WARN='nginx: [warn] could not build optimal types_hash, you should increase either types_hash_max_size: 1024 or types_hash_bucket_size: 64' -- $(std) --no-logagent
+  eq "$RC" 0 "exit (stderr: $ERR)"
 }
 
 # ---- the site template (caltechdata DR-0001, plan phase 1) ----------------------

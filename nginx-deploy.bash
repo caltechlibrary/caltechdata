@@ -101,7 +101,8 @@ EXIT STATUS
    0  success, or nothing to do
    1  the answer is no: diff found drift, or apply was declined
    2  usage: unknown verb or option, a missing or surplus argument, a bad value
-  65  the configuration was rejected: nginx -t failed or logagent found a gap (before any
+  65  the configuration was rejected: nginx -t failed, nginx -t reported a conflicting server name (another
+      enabled site answers for the same name), or logagent found a gap (before any
       change, or after one that was then restored), a token was left unreplaced, the host has
       legacy configuration and --migrate-legacy was not given, or the package's nginx.conf does
       not match the checksum dpkg recorded
@@ -454,6 +455,21 @@ run_gates() {
     die $EX_DATA "nginx -t rejected the staged configuration; nothing was changed on this host"
   fi
   echo "nginx -t on the staged tree: ok"
+  # nginx -t PASSES when two enabled sites claim one server_name on one port: it warns "conflicting server
+  # name ... ignored" and serves whichever it read first. An older hand-made site still linked from
+  # sites-enabled would then keep answering while this script reported success. Only this warning is a
+  # refusal; nginx -t prints others on healthy hosts.
+  if grep -q 'conflicting server name' "$WORK/nginx-t.out"; then
+    {
+      echo "$PROG: another enabled site answers for the same server name, and nginx would ignore one of the two:"
+      grep 'conflicting server name' "$WORK/nginx-t.out" | sed 's/^/  /'
+      echo "Enabled in $ETC_DIR/sites-enabled:"
+      ls -1 "$ETC_DIR/sites-enabled" 2>/dev/null | sed 's/^/  /'
+      echo "Move the old site's link out of $ETC_DIR/sites-enabled (move the link, do not delete the file) and repeat the"
+      echo "command. Nothing was changed."
+    } >&2
+    exit $EX_DATA
+  fi
 
   if ! "$NGINX_BIN" -T -c "$STAGE/nginx.conf" > "$DUMP" 2> "$WORK/nginx-T.err"; then
     cat "$WORK/nginx-T.err" >&2

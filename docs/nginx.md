@@ -58,7 +58,7 @@ The script uses the workspace's exit codes. The ones that matter in practice: **
 `apply`; **2** a bad command line; **65** the configuration was rejected (`nginx -t` failed or `logagent` found a
 gap, before any change or after one that was then restored), a token was left unreplaced, the host has a
 hand-edited `nginx.conf` and `--migrate-legacy` was not given, or the package's file does not match its
-recorded checksum; **66** something the command needs is missing; **69** `--reload` could not reload nginx (the
+recorded checksum, or **another enabled site answers for the same `server_name`** (see below); **66** something the command needs is missing; **69** `--reload` could not reload nginx (the
 files are installed and `nginx -t` passes, nginx keeps serving the old configuration), or `apt-get` could not
 download the package for `--migrate-legacy` (nothing was changed); **74** a copy failed part way (the backup was
 restored); **77** not root. `--help` lists all of them under EXIT STATUS.
@@ -130,11 +130,15 @@ undoes all of it. Do this in a quiet window, with `--reload`.
 - **Without `dpkg` nothing can be recognised.** Where `dpkg-query` cannot say what the package's `nginx.conf` is,
   a hand edit cannot be seen, so `check` and `apply` treat the host as stock, and `--migrate-legacy` stops with
   exit 66 instead of reporting success.
-- **Other sites are not touched.** The script manages only the files in the table above. An older hand-made site
-  file still linked from `sites-enabled/` (including Ubuntu's `default`) keeps answering, and nginx will warn about
-  a conflicting `server_name` or `listen` and pick one. **Take the old site out of `sites-enabled/` yourself, by
-  moving the link, not deleting the file, before `apply`**, and run `diff` first to see what will change.
-  Production's actual layout has not been surveyed (plan phase 0), so check it rather than assume.
+- **Other sites are not touched, but a clash is refused.** The script manages only the files in the table above.
+  An older hand-made site still linked from `sites-enabled/` (including Ubuntu's `default`) stays where it is.
+  `nginx -t` *passes* when two enabled sites claim one `server_name` on one port: it only warns `conflicting
+  server name ... ignored` and serves whichever it read first. So `check` and `apply` stop (exit 65, nothing
+  changed) when that warning appears in the staged test, quote it, and list what is in `sites-enabled/`. Other
+  nginx warnings do not block. **Move the old site's link out of `sites-enabled/` yourself, the link and not the
+  file**, then repeat the command; run `diff` first to see what will change. A site on a different name or port is
+  left alone, and the script cannot know that it is the old one. Production's actual layout has not been surveyed
+  (plan phase 0), so look rather than assume.
 
 `snippets/ssl-params.conf` is not legacy. It is an ordinary managed file, so `diff` shows how a host's copy
 differs and `apply` replaces it, with a backup.
@@ -171,6 +175,8 @@ On 2026-10-28, in the Multipass VM `nginx-stage` (Ubuntu 24.04, nginx 1.24.0, a 
   `/terms` to the library page, and an unlisted path was proxied; `/api/...` and the draft-file content path
   reached 5001 unmodified; `X-User-ID` and `X-Session-ID` did not reach the client while HSTS and `X-Request-ID`
   did; `.mjs` was `text/javascript` and `.css` `text/css`; port 80 redirected to https.
+- With an old site on the same name enabled, real nginx printed `conflicting server name "_" ... ignored`, `check`
+  refused (65), and after the link was moved out `check` passed.
 - A 150 MB body reached the upstream in full on the file-content location (and its `/content/3` form) and was
   refused with 413 on `/api`, on `/`, and on a similar-looking `/files/.../content` path.
 
