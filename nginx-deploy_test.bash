@@ -433,6 +433,44 @@ t_a_tree_without_conf_d_is_accepted() {
   run -- $(stdv diff); eq "$RC" 0 "no drift (out: $OUT)"
 }
 
+# ---- the log format and the Cloudflare list ship in the tree (plan phase 1, addition (a)) ----
+# Production keeps both outside the repository (survey 2026-10-29), so --migrate-legacy, which puts
+# the package's nginx.conf back, would drop the include of the log format. Shipping them here, as
+# CaltechAUTHORS does, keeps production and a fresh instance identical.
+
+t_the_tree_ships_the_log_format() {
+  local f="$HERE/nginx/conf.d/caltechdata_log.conf"
+  exists "$f" "the log format file"
+  [ -f "$f" ] || return 0
+  grep -q '^log_format caltechdata_bots' "$f" || fail "it does not define log_format caltechdata_bots"
+  # logagent's check counts 19 fields in this format; one more or fewer is a change to review
+  eq "$(grep -c -E '^[[:space:]]*.(\$|rt=|urt=|cf_|peer=|lang=|ch_|bot_score=|ja)' "$f")" 8 "the format's lines"
+  grep -q "ja4=\"\$http_cf_ja4\"';\$" "$f" || fail "the format does not end with the ja4 field"
+  # an access_log at http level would log every request twice, as the file's own header says
+  eq "$(grep -v '^[[:space:]]*#' "$f" | grep -c 'access_log')" 0 "no access_log directive in the format file"
+}
+t_the_tree_ships_the_cloudflare_real_ip_list() {
+  local f="$HERE/nginx/conf.d/cloudflare_real_ip.conf"
+  exists "$f" "the real-IP file"
+  [ -f "$f" ] || return 0
+  grep -q '^real_ip_header CF-Connecting-IP;' "$f" || fail "real_ip_header is not CF-Connecting-IP"
+  grep -q '^real_ip_recursive off;' "$f" || fail "real_ip_recursive is not off"
+  eq "$(grep -c '^set_real_ip_from ' "$f")" 22 "the number of Cloudflare ranges (15 IPv4, 7 IPv6)"
+}
+t_both_server_blocks_use_the_log_format_the_tree_defines() {
+  local site="$HERE/nginx/sites-available/caltechdata.conf"
+  eq "$(grep -c '^  access_log /var/log/nginx/access.log caltechdata_bots;' "$site")" 2 "one access_log in each of the two server blocks"
+  local name; name=$(sed -n 's/^  access_log [^ ]* \([a-z_]*\);/\1/p' "$site" | sort -u)
+  eq "$name" caltechdata_bots "one format name, used by both"
+  grep -q "^log_format $name\$" "$HERE/nginx/conf.d/caltechdata_log.conf" 2>/dev/null || fail "the tree does not define log_format $name"
+}
+t_apply_installs_the_log_format_and_the_real_ip_list() {
+  new_case $FUNCNAME; apply_ok
+  exists "$CASE_DIR/etc/conf.d/caltechdata_log.conf" "the log format is installed"
+  exists "$CASE_DIR/etc/conf.d/cloudflare_real_ip.conf" "the real-IP list is installed"
+  run -- $(stdv diff); eq "$RC" 0 "no drift after apply (out: $OUT)"
+}
+
 # ---- phase 3: diff -------------------------------------------------------------
 
 t_diff_on_a_fresh_host_reports_everything_missing() {
