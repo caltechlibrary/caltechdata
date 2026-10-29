@@ -471,6 +471,25 @@ t_apply_installs_the_log_format_and_the_real_ip_list() {
   run -- $(stdv diff); eq "$RC" 0 "no drift after apply (out: $OUT)"
 }
 
+# ---- large uploads: a client that pauses (found 2026-10-29 on the Multipass VM) ----
+# The proxy_* timeouts do not cover a gap in the CLIENT's sending: nginx's client_body_timeout (60 s by
+# default) does. A 90 s pause in a 200 MiB upload was cut at 60 s with a 408 and no response. CaltechDATA,
+# unlike CaltechAUTHORS and CaltechTHESIS, takes very large data files, so the file-content location raises it.
+
+# location_block PATTERN prints the template's location block whose line contains PATTERN.
+location_block() {
+  awk -v pat="$1" 'index($0, pat) && /^  location / {on=1} on {print} on && /^  }/ {exit}' "$HERE/nginx/sites-available/caltechdata.conf"
+}
+t_the_large_upload_location_waits_for_a_client_that_pauses() {
+  local b; b=$(location_block "/draft/files/")
+  has "$b" "client_max_body_size 500G;" "the right location was found"
+  has "$b" "client_body_timeout 3600s;" "the file-content location tolerates a client that pauses"
+}
+t_the_other_locations_keep_the_default_client_timeout() {
+  local site="$HERE/nginx/sites-available/caltechdata.conf"
+  eq "$(grep -c '^[[:space:]]*client_body_timeout ' "$site")" 1 "only the file-content location sets it"
+}
+
 # ---- phase 3: diff -------------------------------------------------------------
 
 t_diff_on_a_fresh_host_reports_everything_missing() {

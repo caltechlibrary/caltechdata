@@ -107,8 +107,16 @@ of the uwsgi protocol and have no counterpart here; the limits above are where u
 (caltechdata DR-0001).
 
 A body over the limit is refused with `413`, and `error.log` says `client intended to send too large body`.
-**The `3600s` is a starting value.** It has not been tuned against Granian: a large-upload test through nginx and
-Granian together is still to be done (plan phase 5).
+**`client_body_timeout 3600s` is set on that location too.** The `proxy_*` timeouts cover the upstream. A gap in the
+*client's* sending is `client_body_timeout`, which nginx defaults to 60 s, and a client that paused longer (a laptop
+asleep, a link that dropped and resumed) was cut with a 408 and no response. Data files here can be very large, so this
+location waits up to an hour; every other location keeps the default.
+
+**The `3600s` values are still starting values.** Tested through nginx and Granian on a Multipass VM with local storage
+(2026-10-29): four concurrent 1 GiB uploads, a 1 GiB upload that took 258 s, and a 200 MiB upload with a 90 s client pause
+all completed with matching MD5s. Not tested: the `proxy_*` timeouts themselves (they act when Granian is slow to accept
+data, as with a slow S3 write), the real `invenio-s3` path to OSN, and a single upload over an hour. The scripts are in the
+WorkLab workspace, `agents/projects/caltechdata/notes/upload_tests/`.
 
 ## Certificates
 
