@@ -15,11 +15,20 @@ assumes you were not there when it was written. The script and its tests are por
 | `sites-available/caltechdata.conf` | `/etc/nginx/sites-available/<site-name>.conf`, linked from `sites-enabled/` | The site: ports 80 and 443, the proxy locations, the large-upload location, `/static`, the TIND-number redirects. A **template**: the script replaces `@SERVER_NAME@` and `@REPO_DIR@`. |
 | `tls/letsencrypt.conf` or `tls/self-signed.conf` | `snippets/caltechdata-tls.conf` | The certificate pair, chosen by `--tls`. |
 | `snippets/ssl-params.conf` | `snippets/ssl-params.conf` | The TLS protocols, ciphers and session settings, for every `--tls`. It carries no `add_header`: the application sends the security headers. |
+| `conf.d/caltechdata_log.conf` | `conf.d/caltechdata_log.conf` | The extended access-log format `caltechdata_bots`: the stock combined fields plus request and upstream time, Cloudflare ray, country, bot score and TLS fingerprints, the connecting address, and language and client-hint headers. It only **defines** the format; each server block of the site sets `access_log ... caltechdata_bots;` itself. `logagent` reads this layout. |
+| `conf.d/cloudflare_real_ip.conf` | `conf.d/cloudflare_real_ip.conf` | The published Cloudflare address ranges that nginx trusts to say who the client is (`real_ip_header CF-Connecting-IP`). Inert where no Cloudflare is in front. The same list as CaltechAUTHORS'; refresh it from Cloudflare's published list when that changes. |
 
-There is no `conf.d/` today. CaltechAUTHORS has one (a log format, concurrency caps, an IIIF cache, a Cloudflare
-address list) because of incidents there; none of that was carried over without evidence that CaltechDATA needs
-it. If the script finds `nginx/conf.d/*.conf` it overlays them like the rest, so adding one later needs no
-script change.
+`conf.d/` holds only the log format and the Cloudflare list, which production kept outside the repository: its
+live `nginx.conf` was hand-edited to include a `caltechdata_log.conf`, and its `conf.d/` had a hand-made
+`cloudflare_real_ip.conf`. `--migrate-legacy` puts the package's `nginx.conf` back, which drops that include, so
+both files ship here and the site sets `access_log` itself. CaltechAUTHORS has more in its `conf.d/` (concurrency
+caps, an IIIF cache) because of incidents there; none of that was carried over without evidence that CaltechDATA
+needs it. The log format is production's, unchanged; it is CaltechAUTHORS' without the trailing
+`cache="$upstream_cache_status"` field, because CaltechDATA has no such cache. If the script finds
+`nginx/conf.d/*.conf` it overlays them like the rest, so adding another needs no script change.
+
+Do not add an `access_log` to either file: at `http` level it would log every request a second time, in a
+different layout.
 
 The TIND-number redirect map is `nginx/redirect-map.conf`. It is not installed under `/etc/nginx`; the site
 file includes it from the checkout by absolute path (`@REPO_DIR@/nginx/redirect-map.conf`).
@@ -137,8 +146,9 @@ undoes all of it. Do this in a quiet window, with `--reload`.
   changed) when that warning appears in the staged test, quote it, and list what is in `sites-enabled/`. Other
   nginx warnings do not block. **Move the old site's link out of `sites-enabled/` yourself, the link and not the
   file**, then repeat the command; run `diff` first to see what will change. A site on a different name or port is
-  left alone, and the script cannot know that it is the old one. Production's actual layout has not been surveyed
-  (plan phase 0), so look rather than assume.
+  left alone, and the script cannot know that it is the old one. Production (`new-data`) was surveyed read-only on
+  2026-10-29: its live site is Ubuntu's `default`, edited in place, so a host like that needs the old link moved
+  out. A replacement host built from `cloud-init` has no old site and does not.
 
 `snippets/ssl-params.conf` is not legacy. It is an ordinary managed file, so `diff` shows how a host's copy
 differs and `apply` replaces it, with a backup.
@@ -182,7 +192,18 @@ On 2026-10-28, in the Multipass VM `nginx-stage` (Ubuntu 24.04, nginx 1.24.0, a 
 
 Not verified: `--tls letsencrypt` on a real certificate; Granian behind nginx (the upstreams were stand-ins, on
 loopback, so the `0.25 s` for 150 MB says nothing about real speed or the `3600s` timeouts); `logagent check`
-(not installed on the stage VM); and production's current configuration.
+(not installed on the stage VM, and the tree's own format has not been run through it; production's identical format
+passed on 2026-10-23); and production's current configuration beyond the survey.
+
+## What a replacement host does differently from production
+
+- **It sends HSTS.** Production's three `server_name` lines have no closing semicolon, so each swallowed the next
+  directive, `add_header Strict-Transport-Security` among them. The template's lines are terminated, so a host
+  built from this tree sends `Strict-Transport-Security: max-age=15768000`.
+- **It logs in the extended format on both ports,** and `nginx.conf` stays the package's.
+
+On the stage VM (nginx 1.24.0), `apply --migrate-legacy` installed the seven items, both server blocks logged in the
+format with the Cloudflare headers carried through, and `rollback` restored `/etc/nginx` byte for byte.
 
 ## Where to look when it is wrong
 
