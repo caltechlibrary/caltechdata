@@ -3,13 +3,19 @@
 # this header. Launch with:
 #   multipass launch 24.04 --name caltechdata-granian-test \
 #     --cpus 4 --memory 16G --disk 40G --cloud-init cloud-init-multipass.yaml
-# MEMORY: 8G is NOT enough. docker-services.yml gives OpenSearch production's
-# 4 GB heap (-Xms4g -Xmx4g), and on an 8G VM the kernel OOM-kills it (exit 137,
-# a restart loop) so /api/records answers 500 (seen on caltechauthors,
-# 2026-10-13). Use 16G. On a host that cannot give 16G, lower the heap in that
-# VM's own checkout (sed -i 's/-Xms4g -Xmx4g/-Xms1g -Xmx1g/' docker-services.yml)
-# and recreate the search container; never commit that change, it is
-# production's value. Reach the instance via `multipass shell` or its
+# MEMORY: 8G is NOT enough with production's heap. docker-services.yml gives
+# OpenSearch production's 4 GB heap (-Xms4g -Xmx4g), and on an 8G VM the kernel
+# OOM-kills it (exit 137, a restart loop) so /api/records answers 500 (seen on
+# caltechauthors, 2026-10-13). Use 16G.
+# A 16 GB host cannot give 16G to a VM. There, launch with --memory 8G and lower
+# the heap in that VM's own checkout, as soon as setup_caltechdata.bash has cloned
+# it and before it starts the services (it installs for several minutes first):
+#   sed -i 's/-Xms4g -Xmx4g/-Xms1g -Xmx1g/' docker-services.yml
+# On a VM that is already built, run the same sed and recreate the search
+# container. Never commit that change, 1g is not production's value. This is the
+# one hand step the 8G build needs: on 2026-10-29 a fresh 8G VM built from the
+# committed files this way, setup_caltechdata.bash exited 0 and
+# verify_rdm_boot.bash passed 6 of 6. Reach the instance via `multipass shell` or its
 # `multipass info` IP. The architecture follows whatever this Mac runs.
 #
 # Bring-up machine for CaltechDATA running under Granian instead of uWSGI
