@@ -2,11 +2,11 @@
 name = "caltechdata"
 description = "The Caltech institutional data repository"
 readme = "README.md"
-version = "13.1.0"
+version = "14.0.6"
 requires-python = ">= 3.12"
 
 dependencies = [
-  "invenio-app-rdm[opensearch2, s3]~=13.1.0",
+  "invenio-app-rdm[opensearch2, s3]~=14.0.6",
   "invenio-saml",
   "invenio-s3",
   "invenio-rdm-records",
@@ -32,7 +32,3 @@ no-binary-package = [
     "lxml",
     "xmlsec"
 ]
-
-[tool.uv.sources]
-invenio-saml = { git = "https://github.com/caltechlibrary/invenio-saml", tag = "maint-v1.x" }
-invenio-rdm-records = {git = "https://github.com/caltechlibrary/invenio-rdm-records", tag = "maint-20.x"}
