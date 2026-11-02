@@ -56,7 +56,15 @@
 # Booted once, 2026-10-28, as caltechdata-granian-test. The pieces ran and
 # verify_rdm_boot.bash passed 6 of 6, but the boot was resumed in steps after
 # three fixes (two missing packages, the .env export, the local files location),
-# so the corrected file has not run whole on a fresh VM.
+# so the corrected file had not run whole on a fresh VM.
+#
+# Run whole, 2026-11-02, on the v14 pins (invenio-app-rdm 14.0.6, Flask-Caching
+# 2.5.1) as caltechdata-cloudinit-v14 (4 CPUs, 8G, 40G): cloud-init finished,
+# setup_caltechdata.bash (run by hand) exited 0 in 6 min 30 s including the Node 24
+# asset build, verify_rdm_boot.bash passed 6 of 6, /api/records answered 200 about
+# 30 s after rdm.target started, and a cache write and read worked. The one hand
+# step was the 1g OpenSearch heap edit above. Not tested: a non-empty database,
+# the UI beyond the boot check, SAML, OSN.
 package_update: true
 package_upgrade: true
 fqdn: caltechdata-granian.local
