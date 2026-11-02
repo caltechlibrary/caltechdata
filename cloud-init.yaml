@@ -480,7 +480,7 @@ write_files:
       INVENIO_LOGGING_CONSOLE_LEVEL=INFO
       FLASK_ENV=production
       INVENIO_SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://caltechdata:caltechdata@localhost/caltechdata
-      INVENIO_CACHE_TYPE=redis
+      INVENIO_CACHE_TYPE=flask_caching.backends.RedisCache
       INVENIO_CACHE_REDIS_URL=redis://localhost:6379/0
       INVENIO_ACCOUNTS_SESSION_REDIS_URL=redis://localhost:6379/1
       INVENIO_CELERY_RESULT_BACKEND=redis://localhost:6379/2
