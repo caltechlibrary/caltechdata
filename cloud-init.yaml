@@ -13,8 +13,9 @@
 #     with Invenio's own pyfs factory and carries no S3 credentials, so the
 #     instance cannot write to OSN. The script also makes a local files location
 #     the default: services setup creates default-location as s3://default
-#     (.invenio says file_storage = S3), which the local factory cannot open. DATACITE is switched off in .env because
-#     invenio.cfg has DATACITE_ENABLED = True.
+#     (.invenio says file_storage = S3), which the local factory cannot open. DATACITE stays ENABLED (True) in .env but in TEST MODE with no
+#     password, so it cannot mint a real DOI. "false" is a truthy string and "False" breaks 63% of record pages
+#     (RDM_PERSISTENT_IDENTIFIERS["doi"] is_enabled follows DATACITE_ENABLED); see the 2026-11-02 hand-off.
 #   - Postgres 14.13 (docker-services.yml), from DR-0001.
 #   - Branch default is `rsdoiel`: `main` has no Granian code.
 #   - nginx comes from nginx-deploy.bash, which caltechdata does not have yet.
@@ -497,7 +498,8 @@ write_files:
       INVENIO_BROKER_URL=amqp://guest:guest@localhost:5672/
       INVENIO_CELERY_BROKER_URL=amqp://guest:guest@localhost:5672/
       INVENIO_SEARCH_HOSTS=["localhost:9200"]
-      INVENIO_DATACITE_ENABLED=false
+      INVENIO_DATACITE_ENABLED=True
+      INVENIO_DATACITE_TEST_MODE=True
       INVENIO_FILES_REST_STORAGE_FACTORY=invenio_files_rest.storage.pyfs_storage_factory
       INVENIO_TRUSTED_HOSTS=["localhost","127.0.0.1","0.0.0.0"]
       EOT
@@ -537,7 +539,7 @@ write_files:
       echo "NOTE: invenio.cfg sets the S3 storage factory and the OSN endpoint."
       echo "This test instance overrides the factory with local file storage"
       echo "(INVENIO_FILES_REST_STORAGE_FACTORY above), so nothing here can write"
-      echo "to OSN, and INVENIO_DATACITE_ENABLED=false stops it minting DOIs."
+      echo "to OSN, and INVENIO_DATACITE_TEST_MODE=True (no password) stops it minting DOIs."
       echo "No S3 credentials are written to this instance. An OSN read test"
       echo "is a later, separate decision."
 
@@ -591,7 +593,7 @@ write_files:
          CaltechDATA Granian test instance deployed at /Sites/${INSTANCE_NAME}
          Python: 3.12 (via uv) | Branch: ${BRANCH}
          Postgres 14.13/OpenSearch: Docker, EMPTY (no demo data), local file
-         storage, DataCite disabled. No production data is loaded.
+         storage, DataCite in test mode (no credentials). No production data is loaded.
 
              cd /Sites/${INSTANCE_NAME}
              sudo systemctl start rdm.target   # or: start rdm_celery rdm_rest rdm nginx
