@@ -67,6 +67,35 @@ bodies_identical() {
   diff <(body "$DIR/cloud-init.yaml") <(body "$DIR/cloud-init-multipass.yaml")
 }
 
+# contains FILE TEXT succeeds when the fixed string TEXT appears in FILE.
+contains() {
+  grep -qF -- "$2" "$DIR/$1"
+}
+
+# lacks FILE TEXT succeeds when the fixed string TEXT does not appear in FILE.
+lacks() {
+  ! grep -qF -- "$2" "$DIR/$1"
+}
+
+# the reboot scripts, the nginx check at boot, and the nginx install (caltechdata DR-0007, plan R5). The
+# two files share one body, so every case runs against both.
+for f in cloud-init.yaml cloud-init-multipass.yaml; do
+  check "$f: pandoc is installed (admin-shell-scripts' make install builds man pages with it)" contains "$f" "  - pandoc"
+  check "$f: setup installs safe_to_reboot.bash from the checkout's admin/" contains "$f" 'admin/safe_to_reboot.bash" /usr/local/bin/safe_to_reboot.bash'
+  check "$f: setup installs caltechdata_down.bash from the checkout's admin/" contains "$f" 'admin/caltechdata_down.bash" /usr/local/bin/caltechdata_down.bash'
+  check "$f: the scripts are installed with install(1), mode 0755" contains "$f" 'sudo install -m 0755 "/Sites/${INSTANCE_NAME}/admin/safe_to_reboot.bash"'
+  check "$f: setup stops early if the branch has no admin scripts" contains "$f" 'if [ ! -f admin/safe_to_reboot.bash ] || [ ! -f admin/caltechdata_down.bash ]'
+  check "$f: verify_rdm_boot.bash checks nginx's installed configuration" contains "$f" 'check "nginx'"'"'s installed configuration is a sound deployment of the checkout" nginx_config_is_sound'
+  check "$f: that check runs nginx-deploy.bash verify on the checkout" contains "$f" 'nginx-deploy.bash" verify \'
+  check "$f: verify_rdm_boot.bash checks the two RDM reboot scripts" contains "$f" 'check "safe_to_reboot.bash and caltechdata_down.bash are installed" reboot_scripts_installed'
+  check "$f: verify_rdm_boot.bash checks check-for-reboot.bash" contains "$f" 'check "check-for-reboot.bash (admin-shell-scripts) is installed" check_for_reboot_installed'
+  check "$f: the person-run step is named in the install notes" contains "$f" "sudo make install prefix=/usr/local"
+  check "$f: nginx-deploy.bash apply still installs the nginx configuration" contains "$f" 'nginx-deploy.bash" apply --yes --reload'
+  check "$f: the stale 'caltechdata does not have nginx-deploy.bash yet' note is gone" lacks "$f" "which caltechdata does not have yet"
+  check "$f: the stale 'stops with a message until it is ported' note is gone" lacks "$f" "stops with a message until it is ported"
+  check "$f: the guard's message no longer says the script is yet to be ported" lacks "$f" "It is ported from caltechdata on the"
+done
+
 check gitignore_covers_celerybeat_db gitignore_covers_celerybeat_db
 check header_documents_8g_launch header_documents_8g_launch
 check bodies_identical bodies_identical
