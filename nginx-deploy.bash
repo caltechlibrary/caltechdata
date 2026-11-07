@@ -1,19 +1,20 @@
 #!/bin/bash
 #
-# nginx-deploy.bash - deploy this repository's nginx configuration to a host by copy.
+# nginx-deploy.bash - link this repository's nginx configuration into a host's /etc/nginx.
 #
-# Ported from caltechauthors DR-0009 (agents/projects/caltechdata/plans/nginx_deploy_port.md; no IIIF cache,
-# no log_format files). Verbs: check, diff, apply, rollback. The repository's nginx/ tree
-# mirrors /etc/nginx; this script renders it for one host, tests the result on a STAGED copy
-# of the host's /etc/nginx before it copies anything, backs up what it replaces, and can put
-# the backup back. The packaged /etc/nginx/nginx.conf is never edited, except that
-# --migrate-legacy puts the package's own file back over a hand-edited one.
+# caltechdata DR-0007 (ported from caltechdata DR-0009 as amended by DR-0011; the plan is
+# agents/projects/caltechdata/plans/nginx_deploy_port.md). Verbs: check, diff, apply, rollback, verify. The
+# repository's nginx/ tree mirrors /etc/nginx and IS the configuration: apply links its files
+# into /etc/nginx (a git pull is then a live change, so every pull is followed by `check`), and
+# writes the two small files that differ per host. Everything is tested on a STAGED copy of
+# the host's /etc/nginx first, what apply replaces is backed up, and rollback puts it back.
+# The packaged /etc/nginx/nginx.conf is never edited.
 #
 # Written for bash 3.2 (macOS) and later.
 
 set -u
 
-VERSION=0.0.4
+VERSION=0.0.5
 PROG=nginx-deploy.bash
 
 # Exit codes, workspace DR-0014.
@@ -32,32 +33,55 @@ EX_CONFIG=78
 usage_text() {
   cat <<'EOF'
 NAME
-  nginx-deploy.bash - deploy the repository's nginx configuration to a host by copy
+  nginx-deploy.bash - link the repository's nginx configuration into a host's /etc/nginx
 
 SYNOPSIS
-  nginx-deploy.bash check    [OPTIONS] [--migrate-legacy]
+  nginx-deploy.bash check    [OPTIONS]
   nginx-deploy.bash diff     [OPTIONS]
-  nginx-deploy.bash apply    [OPTIONS] [--migrate-legacy] [--reload] [--yes]
+  nginx-deploy.bash apply    [OPTIONS] [--reload] [--yes]
   nginx-deploy.bash rollback [--etc-dir DIR] [--backup-dir DIR] [--reload] [STAMP]
+  nginx-deploy.bash verify   [--repo-dir DIR] [--etc-dir DIR] [--site-name NAME]
   nginx-deploy.bash --help | --version
 
 DESCRIPTION
-  The repository's nginx/ tree mirrors /etc/nginx. This script renders it for one host
-  (replacing the tokens written between @ signs in the site file) and installs it by COPY,
-  never by symlink, so a change to the checkout is never a live change to the host. The
-  packaged /etc/nginx/nginx.conf is never edited.
+  The repository's nginx/ tree mirrors /etc/nginx and is the configuration. apply installs a
+  symbolic link under /etc/nginx for each of its files (conf.d/*.conf, the site file, the
+  ssl-params snippet and the redirect map, as snippets/caltechdata-redirect-map.conf), so
+  a git pull changes what nginx reads. Two small files differ per host and are written, not
+  linked: snippets/caltechdata-host.conf (server_name, and the static files' path) and
+  snippets/caltechdata-tls.conf (the certificate pair). The packaged
+  /etc/nginx/nginx.conf is never edited.
+
+UPGRADING A HOST
+  After ANY git pull in the checkout, before restarting nginx or the RDM services:
+
+    git pull
+    sudo ./nginx-deploy.bash verify
+    sudo systemctl restart nginx    (and the RDM services)
+
+  A pull that moves or removes a file makes a link dangle, and nginx would not start at its
+  next restart (the 2026-11-05 outage). verify reports that without needing a server name or
+  --tls; `apply` repairs it. apply also sets git's core.hooksPath to .githooks in the checkout,
+  so a post-merge hook runs verify after each pull and warns if it fails. The hook only warns:
+  git ignores a hook's exit status, and it does not run on `git reset --hard`.
 
 VERBS
-  check     render, build a STAGED copy of the host's /etc/nginx with the rendered files laid
-            over it, and test that copy with `nginx -t -c` and, if installed, `logagent check`;
-            changes nothing on the host
-  diff      show the installed files against the rendered ones; exit 1 when they differ; a host
-            that still has the legacy configuration (see --migrate-legacy) is reported as drift
-  apply     check, then back up what will be replaced, copy the rendered files, run `nginx -t`
-            on the installed tree, and restore the backup if that fails. Reloads nginx only
-            with --reload. Asks first unless --yes is given.
+  check     fail (exit 65) on a dangling link or one that no longer points into this checkout;
+            build a STAGED copy of the host's /etc/nginx with copies of the repository's files
+            and the host files laid over it; test that copy with `nginx -t -c`, confirm the
+            log_format and the access_log of both server blocks, and run `logagent check` if
+            installed; changes nothing on the host
+  diff      show the installed files against what apply would install; exit 1 when they differ
+  apply     check, then back up what will be replaced, make the links and write the host files,
+            run `nginx -t` on the installed tree, and restore the backup if that fails. Safe to
+            run again: it repairs a moved checkout or a renamed file. Reloads nginx only with
+            --reload. Asks first unless --yes is given.
   rollback  put a backup back (the latest, or the named STAMP), run `nginx -t`, and reload
             only with --reload
+  verify    read-only check of a host that has been deployed; needs no --server-name or --tls, so
+            the post-merge hook and verify_rdm_boot.bash can call it. Fails (65) if a link or host
+            file is missing, dangling or not pointing into this checkout, if nginx -t rejects the
+            INSTALLED tree (the one a restart loads), or if the logging is not in effect
 
 OPTIONS
   --server-name NAME     the host's name, for server_name ("_" is a catch-all). Required for
@@ -67,23 +91,13 @@ OPTIONS
   --cert-name NAME       the Let's Encrypt lineage under /etc/letsencrypt/live/
                          (default: the server name; used with --tls letsencrypt)
   --site-name NAME       the site file's name under sites-available/ (default: caltechdata)
-  --repo-dir DIR         the checkout holding nginx/ (default: this script's directory); the
-                         redirect map and the static files are found under it
+  --repo-dir DIR         the checkout holding nginx/ (default: this script's directory); every
+                         link points into it, and the static files are found under it
   --etc-dir DIR          the nginx configuration directory (default: /etc/nginx)
   --backup-dir DIR       where apply keeps its backups (default: /var/backups/caltechdata-nginx)
   --logagent-config FILE logagent's host configuration (default: /etc/logagent/logagent.yaml)
   --require-logagent     a missing logagent is an error, not a skipped step
   --no-logagent          do not run logagent check
-  --migrate-legacy       check and apply: move a host that was configured by hand onto this layout.
-                         Such a host has an /etc/nginx/nginx.conf edited away from the nginx-common
-                         package's. Without this option check and apply refuse (exit 65) and say so.
-                         With it, the staged tree is built from the migrated state, apply backs
-                         nginx.conf up, replaces it with the package's own (taken from the nginx-common
-                         .deb that apt-get downloads, and accepted only if its md5 is the one dpkg
-                         recorded) and installs; rollback undoes all of it. A host with nothing legacy
-                         is not touched, and the package system is not used. Where dpkg cannot say
-                         what the package's nginx.conf is, a hand edit cannot be recognised, so
-                         check and apply treat the host as stock and --migrate-legacy stops (exit 66).
   --reload               apply and rollback: reload nginx after a good test
   --yes                  apply: do not ask first (for installers)
   --keep-stage           keep the staged tree and print its path (for debugging)
@@ -93,29 +107,25 @@ ENVIRONMENT
   NGINX      the nginx program (default: nginx)
   LOGAGENT   the logagent program (default: logagent)
   SYSTEMCTL  the systemctl program, used by --reload (default: systemctl)
-  DPKG_QUERY the dpkg-query program, used to find out whether nginx.conf was modified (default: dpkg-query)
-  APT_GET    the apt-get program, used by --migrate-legacy to download nginx-common (default: apt-get)
-  DPKG_DEB   the dpkg-deb program, used by --migrate-legacy to read that package (default: dpkg-deb)
 
 EXIT STATUS
-   0  success, or nothing to do
-   1  the answer is no: diff found drift, or apply was declined
+   0  success, or nothing to do (diff found no drift; --help and --version)
+   1  the answer is no: diff found drift, or apply was declined at the prompt
    2  usage: unknown verb or option, a missing or surplus argument, a bad value
-  65  the configuration was rejected: nginx -t failed, nginx -t reported a conflicting server name (another
-      enabled site answers for the same name), or logagent found a gap (before any
-      change, or after one that was then restored), a token was left unreplaced, the host has
-      legacy configuration and --migrate-legacy was not given, or the package's nginx.conf does
-      not match the checksum dpkg recorded
+  65  the configuration was rejected: nginx -t failed, nginx -t reported a conflicting server name
+      (another enabled site answers for the same name), or logagent found a gap (before any
+      change, or after one that was then restored), a token is left in a linked file, or a link
+      is missing, dangling or points outside the checkout
   66  a needed input is missing: nginx, systemctl with --reload, the repository's nginx/ tree,
       the etc directory, a snippet or dhparam.pem it requires, a backup, logagent with
-      --require-logagent, or (--migrate-legacy) dpkg-query unable to name the installed
-      nginx-common and its nginx.conf checksum
+      --require-logagent, or logagent's configuration file when logagent is run
   69  --reload: systemctl could not reload nginx (the files are installed and nginx -t
-      passes; nginx keeps serving the previous configuration); or --migrate-legacy: apt-get
-      could not download nginx-common (nothing was changed)
-  70  an error nothing classified (a bug)
+      passes; nginx keeps serving the previous configuration)
+  70  an error nothing classified (a bug): the awk read of the nginx -T dump failed, or logagent
+      check exited with a status this script does not know
   73  the backup directory could not be made (nothing was changed)
-  74  a copy failed part way (the backup was restored)
+  74  a copy or write failed: in apply part way (the backup was restored), or while rendering or
+      staging, before any change to the host
   77  not root, and --etc-dir is /etc/nginx
   78  logagent's configuration file is present and wrong
 EOF
@@ -155,7 +165,6 @@ REQUIRE_LOGAGENT=0
 NO_LOGAGENT=0
 RELOAD=0
 YES=0
-MIGRATE=0
 
 need_value() { # need_value OPTION COUNT
   [ "$2" -ge 2 ] || usage_error "option $1 needs a value"
@@ -181,7 +190,6 @@ while [ $# -gt 0 ]; do
     --no-logagent) NO_LOGAGENT=1; shift ;;
     --reload) RELOAD=1; shift ;;
     --yes) YES=1; shift ;;
-    --migrate-legacy) MIGRATE=1; shift ;;
     --keep-stage) KEEP=1; shift ;;
     --) shift; while [ $# -gt 0 ]; do POS+=("$1"); shift; done; break ;;
     -*) usage_error "unknown option: $arg" ;;
@@ -189,11 +197,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-[ ${#POS[@]} -gt 0 ] || usage_error "no verb given (the verbs are: check, diff, apply, rollback)"
+[ ${#POS[@]} -gt 0 ] || usage_error "no verb given (the verbs are: check, diff, apply, rollback, verify)"
 VERB=${POS[0]}
 case "$VERB" in
-  check|diff|apply|rollback) ;;
-  *) usage_error "unknown verb: $VERB (the verbs are: check, diff, apply, rollback)" ;;
+  check|diff|apply|rollback|verify) ;;
+  *) usage_error "unknown verb: $VERB (the verbs are: check, diff, apply, rollback, verify)" ;;
 esac
 STAMP_ARG=""
 if [ "$VERB" = rollback ]; then
@@ -203,13 +211,9 @@ else
   [ ${#POS[@]} -le 1 ] || usage_error "surplus argument: ${POS[1]}"
 fi
 case "$VERB" in
-  check|diff) [ "$RELOAD" -eq 0 ] || usage_error "--reload only applies to apply and rollback" ;;
+  check|diff|verify) [ "$RELOAD" -eq 0 ] || usage_error "--reload only applies to apply and rollback" ;;
 esac
 [ "$VERB" = apply ] || [ "$YES" -eq 0 ] || usage_error "--yes only applies to apply"
-case "$VERB" in
-  check|apply) ;;
-  *) [ "$MIGRATE" -eq 0 ] || usage_error "--migrate-legacy only applies to check and apply" ;;
-esac
 
 # ---- validating the values ---------------------------------------------------
 
@@ -222,15 +226,17 @@ BACKUP_ROOT=${BACKUP_ROOT%/}
 abs_path_ok "$BACKUP_ROOT" || usage_error "--backup-dir '$BACKUP_ROOT' must be an absolute path of letters, digits, . _ - and /"
 
 if [ "$VERB" != rollback ]; then
-  [ -n "$SERVER_NAME" ] || usage_error "--server-name is required"
-  name_ok "$SERVER_NAME" || usage_error "--server-name '$SERVER_NAME' may only contain letters, digits, . _ and -"
-  [ -n "$TLS" ] || usage_error "--tls is required (letsencrypt or self-signed)"
-  case "$TLS" in
-    letsencrypt|self-signed) ;;
-    *) usage_error "--tls '$TLS' is not one of: letsencrypt, self-signed" ;;
-  esac
-  [ -n "$CERT_NAME" ] || CERT_NAME=$SERVER_NAME
-  name_ok "$CERT_NAME" || usage_error "--cert-name '$CERT_NAME' may only contain letters, digits, . _ and -"
+  if [ "$VERB" != verify ]; then
+    [ -n "$SERVER_NAME" ] || usage_error "--server-name is required"
+    name_ok "$SERVER_NAME" || usage_error "--server-name '$SERVER_NAME' may only contain letters, digits, . _ and -"
+    [ -n "$TLS" ] || usage_error "--tls is required (letsencrypt or self-signed)"
+    case "$TLS" in
+      letsencrypt|self-signed) ;;
+      *) usage_error "--tls '$TLS' is not one of: letsencrypt, self-signed" ;;
+    esac
+    [ -n "$CERT_NAME" ] || CERT_NAME=$SERVER_NAME
+    name_ok "$CERT_NAME" || usage_error "--cert-name '$CERT_NAME' may only contain letters, digits, . _ and -"
+  fi
   name_ok "$SITE_NAME" || usage_error "--site-name '$SITE_NAME' may only contain letters, digits, . _ and -"
   if [ -z "$REPO_DIR" ]; then REPO_DIR=$(cd "$(dirname "$0")" && pwd); fi
   abs_path_ok "$REPO_DIR" || usage_error "--repo-dir '$REPO_DIR' must be an absolute path of letters, digits, . _ - and /"
@@ -255,10 +261,6 @@ if [ "$VERB" != diff ]; then
   esac
 fi
 
-DPKG_QUERY_BIN=${DPKG_QUERY:-dpkg-query}
-APT_GET_BIN=${APT_GET:-apt-get}
-DPKG_DEB_BIN=${DPKG_DEB:-dpkg-deb}
-
 SYSTEMCTL_BIN=${SYSTEMCTL:-systemctl}
 if [ "$RELOAD" -eq 1 ]; then
   case "$SYSTEMCTL_BIN" in
@@ -272,13 +274,17 @@ fi
 if [ "$VERB" != rollback ]; then
   SRC=$REPO_DIR/nginx
   [ -d "$SRC" ] || die $EX_NOINPUT "the repository's nginx tree is missing: $SRC"
+  [ -d "$SRC/conf.d" ] || die $EX_NOINPUT "missing: $SRC/conf.d"
   [ -f "$SRC/sites-available/caltechdata.conf" ] || die $EX_NOINPUT "missing: $SRC/sites-available/caltechdata.conf"
-  [ -f "$SRC/tls/$TLS.conf" ] || die $EX_NOINPUT "missing: $SRC/tls/$TLS.conf"
+  [ "$VERB" = verify ] || [ -f "$SRC/tls/$TLS.conf" ] || die $EX_NOINPUT "missing: $SRC/tls/$TLS.conf"
   [ -f "$SRC/snippets/ssl-params.conf" ] || die $EX_NOINPUT "missing: $SRC/snippets/ssl-params.conf"
+  [ -f "$SRC/redirect-map.conf" ] || die $EX_NOINPUT "missing: $SRC/redirect-map.conf (linked as snippets/caltechdata-redirect-map.conf)"
 fi
 
-if [ "$VERB" = check ] || [ "$VERB" = apply ]; then
+if [ "$VERB" = check ] || [ "$VERB" = apply ] || [ "$VERB" = verify ]; then
   [ -f "$ETC_DIR/nginx.conf" ] || die $EX_NOINPUT "missing: $ETC_DIR/nginx.conf"
+fi
+if [ "$VERB" = check ] || [ "$VERB" = apply ]; then
   # Written by cloud-init, not by this script; it is required, not created. (snippets/ssl-params.conf
   # was too, until a host kept a stale copy of it: it is managed now, see render_all.)
   [ -f "$ETC_DIR/dhparam.pem" ] || die $EX_NOINPUT "missing: $ETC_DIR/dhparam.pem (cloud-init writes it)"
@@ -294,7 +300,7 @@ WORK=$(mktemp -d "${TMPDIR:-/tmp}/nginx-deploy.XXXXXX") || die $EX_IOERR "could 
 
 # ---- rendering ---------------------------------------------------------------
 
-# render_file SOURCE DEST replaces the closed set of tokens and fails if one is left.
+# render_file SOURCE DEST replaces the closed set of tokens and fails if a token is left.
 render_file() {
   sed -e "s#@SERVER_NAME@#$SERVER_NAME#g" -e "s#@REPO_DIR@#$REPO_DIR#g" -e "s#@CERT_NAME@#$CERT_NAME#g" "$1" > "$2" \
     || die $EX_IOERR "could not render $1"
@@ -316,106 +322,120 @@ rewrite_in_tree() {
 }
 
 RENDER=$WORK/render
-MANAGED=()      # the files this script owns, relative to the etc directory
-LINK_REL=""
+MANAGED=()      # the files this script WRITES (the two host files), relative to the etc directory
+LNK_REL=()      # the links into the checkout, relative to the etc directory
+LNK_TGT=()      # and the file in the checkout each one must point to
+LINK_REL=""     # the sites-enabled link: it points at sites-available, not at the checkout
 LINK_TARGET=""
 
-# render_all renders every managed file into $RENDER, in the layout of the etc directory.
-render_all() {
-  mkdir -p "$RENDER/conf.d" "$RENDER/sites-available" "$RENDER/snippets" || die $EX_IOERR "could not make $RENDER"
-  # the repository has no conf.d today; one that is added later is overlaid like the rest
+# add_link REL TARGET records a link from the etc directory into the checkout.
+add_link() { LNK_REL+=("$1"); LNK_TGT+=("$2"); }
+
+# check_repo_tokens fails (65) if a file that will be LINKED holds an @TOKEN@: a linked file cannot be
+# rendered, so the token would reach nginx as it is (DR-0011: host values live in the generated host files).
+check_repo_tokens() {
+  local f left
+  for f in "${LNK_TGT[@]}"; do
+    left=$(grep -n -o '@[A-Z][A-Z_]*@' "$f" | head -3 | tr '\n' ' ')
+    [ -z "$left" ] || die $EX_DATA "a token is left in $f: $left (a linked file cannot be rendered; host values belong in the generated host files)"
+  done
+}
+
+# list_links lists the links (conf.d, the site file, ssl-params, the redirect map) that apply makes.
+list_links() {
   local f
   for f in "$SRC"/conf.d/*.conf; do
     [ -f "$f" ] || continue
-    render_file "$f" "$RENDER/conf.d/$(basename "$f")"
-    MANAGED+=("conf.d/$(basename "$f")")
+    add_link "conf.d/$(basename "$f")" "$f"
   done
-  render_file "$SRC/sites-available/caltechdata.conf" "$RENDER/sites-available/$SITE_NAME.conf"
-  MANAGED+=("sites-available/$SITE_NAME.conf")
+  add_link "sites-available/$SITE_NAME.conf" "$SRC/sites-available/caltechdata.conf"
+  add_link "snippets/ssl-params.conf" "$SRC/snippets/ssl-params.conf"
+  add_link "snippets/caltechdata-redirect-map.conf" "$SRC/redirect-map.conf"
+  check_repo_tokens
+}
+
+# render_all lists the links and renders the two files that differ per host into $RENDER, in the layout of
+# the etc directory.
+render_all() {
+  mkdir -p "$RENDER/snippets" || die $EX_IOERR "could not make $RENDER"
+  list_links
+  {
+    echo "# Written by nginx-deploy.bash (caltechdata DR-0011). Not a link: this is one of the two files that differ per host."
+    echo "# Run nginx-deploy.bash apply to change it; do not edit it by hand."
+    echo "server_name $SERVER_NAME;"
+    echo "set \$caltechdata_static $REPO_DIR/.venv/var/instance/static;"
+  } > "$RENDER/snippets/caltechdata-host.conf" || die $EX_IOERR "could not write the host file"
+  MANAGED+=("snippets/caltechdata-host.conf")
   render_file "$SRC/tls/$TLS.conf" "$RENDER/snippets/caltechdata-tls.conf"
   MANAGED+=("snippets/caltechdata-tls.conf")
-  render_file "$SRC/snippets/ssl-params.conf" "$RENDER/snippets/ssl-params.conf"
-  MANAGED+=("snippets/ssl-params.conf")
   LINK_REL="sites-enabled/$SITE_NAME.conf"
   LINK_TARGET="$ETC_DIR/sites-available/$SITE_NAME.conf"
 }
 
-# ---- the legacy configuration (a host configured by hand before this script) ---
-
-LEG_CONF=0      # nginx.conf differs from the nginx-common package's
-STOCK_MD5=""    # the md5 dpkg recorded for the package's nginx.conf
-
-# md5_of FILE prints the file's md5 (md5sum on Linux, md5 on macOS).
-md5_of() {
-  if command -v md5sum >/dev/null 2>&1; then md5sum < "$1" | awk '{print $1}'; else md5 -q "$1"; fi
-}
-
-# detect_legacy sets LEG_CONF and STOCK_MD5. A modified nginx.conf is one whose md5 is not the
-# package's (the check dpkg --verify makes). Where dpkg cannot say, nothing can be recognised, and the
-# host is treated as stock.
-detect_legacy() {
-  LEG_CONF=0
-  [ -f "$ETC_DIR/nginx.conf" ] || return 0
-  STOCK_MD5=$("$DPKG_QUERY_BIN" -W -f='${Conffiles}\n' nginx-common 2>/dev/null | awk '$1=="/etc/nginx/nginx.conf"{print $2; exit}')
-  if [ -n "$STOCK_MD5" ]; then
-    [ "$(md5_of "$ETC_DIR/nginx.conf")" = "$STOCK_MD5" ] || LEG_CONF=1
-  fi
-}
-
-# refuse_legacy is exit 65: installing next to a hand-edited nginx.conf is not what was tested.
-refuse_legacy() {
-  {
-    echo "$PROG: this host has configuration from before this script:"
-    [ "$LEG_CONF" -ne 1 ] || echo "  $ETC_DIR/nginx.conf differs from the nginx-common package's (it was edited by hand)"
-    echo "Nothing was changed. To migrate, repeat the command with --migrate-legacy: it backs up nginx.conf,"
-    echo "restores the package's own and installs; rollback undoes all of it."
-  } >&2
-  exit $EX_DATA
-}
-
-# fetch_stock puts the package's own nginx.conf at $RENDER/nginx.conf. It downloads the installed
-# version of nginx-common (apt-get download needs no root and changes nothing on the host), reads only
-# that file out of the .deb, and accepts it only if its md5 is the one dpkg recorded. (apt-get install
-# --reinstall --force-confnew does NOT do this: dpkg keeps a modified conffile when the package's
-# version has not changed. Rehearsed on the Multipass VM, 2026-10-13.)
-fetch_stock() {
-  local ver deb got
-  [ -n "$STOCK_MD5" ] || die $EX_NOINPUT "cannot restore the package's nginx.conf: dpkg-query ($DPKG_QUERY_BIN) cannot say which nginx.conf checksum the nginx-common package has"
-  ver=$("$DPKG_QUERY_BIN" -W -f='${Version}' nginx-common 2>/dev/null)
-  [ -n "$ver" ] || die $EX_NOINPUT "cannot restore the package's nginx.conf: dpkg-query ($DPKG_QUERY_BIN) cannot say which version of nginx-common is installed"
-  mkdir -p "$WORK/pkg" || die $EX_IOERR "could not make $WORK/pkg"
-  if ! ( cd "$WORK/pkg" && "$APT_GET_BIN" download "nginx-common=$ver" ) > "$WORK/apt.out" 2>&1; then
-    # A host that has not taken the latest update has a version the archive no longer carries (seen on
-    # nginx-stage, 2026-10-28: 1.24.0-2ubuntu7.18 installed, only 7.19 left). The archive's current package
-    # is tried instead. This widens where the file may come from, never what it must be: the md5 check
-    # below is against what dpkg recorded for the INSTALLED version, so a changed file is still refused.
-    echo "$PROG: nginx-common=$ver is no longer in the archive; trying the archive's current nginx-common (its nginx.conf is used only if its md5 is the one dpkg recorded for $ver)" >&2
-    rm -f "$WORK"/pkg/nginx-common_*.deb
-    if ! ( cd "$WORK/pkg" && "$APT_GET_BIN" download nginx-common ) > "$WORK/apt.out" 2>&1; then
-      cat "$WORK/apt.out" >&2
-      die $EX_UNAVAILABLE "apt-get could not download nginx-common=$ver or the archive's current nginx-common; nothing was changed (if the package index is stale, run apt-get update and repeat the command)"
+# verify_links is the check's answer to a pull that moved or removed a file (2026-11-05): every link of
+# ours that is already installed must resolve and point into this checkout. It lists all of them, then
+# fails (65). check calls it as it is: a link that is not installed yet, or a regular file where a link
+# belongs, is not an error there (apply makes or replaces it). verify calls it "strict": a host that is
+# supposed to be deployed must have every link, and the host files and the sites-enabled link too.
+verify_links() {
+  local i rel tgt dest cur msg="" strict=${1:-}
+  for i in "${!LNK_REL[@]}"; do
+    rel=${LNK_REL[$i]}; tgt=${LNK_TGT[$i]}; dest=$ETC_DIR/$rel
+    if [ ! -L "$dest" ]; then
+      if [ "$strict" = strict ]; then
+        if [ -e "$dest" ]; then msg="$msg  not a link: $rel (a regular file where the link belongs; apply replaces it)"$'\n'
+        else msg="$msg  missing: $rel (apply makes it)"$'\n'; fi
+      fi
+      continue
     fi
+    cur=$(readlink "$dest")
+    if [ ! -e "$dest" ]; then
+      msg="$msg  dangling: $rel -> $cur (nothing is there; this checkout wants $tgt)"$'\n'
+    elif [ "$cur" != "$tgt" ]; then
+      case "$cur" in
+        "$REPO_DIR"/*) msg="$msg  stale: $rel -> $cur (this checkout wants $tgt)"$'\n' ;;
+        *) msg="$msg  outside the checkout: $rel -> $cur (this checkout wants $tgt)"$'\n' ;;
+      esac
+    fi
+  done
+  if [ "$strict" = strict ]; then
+    for rel in snippets/caltechdata-host.conf snippets/caltechdata-tls.conf; do
+      [ -f "$ETC_DIR/$rel" ] || msg="$msg  missing: $rel (apply writes it)"$'\n'
+    done
+    dest=$ETC_DIR/sites-enabled/$SITE_NAME.conf
+    if [ ! -L "$dest" ]; then msg="$msg  missing: sites-enabled/$SITE_NAME.conf (apply makes it)"$'\n'
+    elif [ ! -e "$dest" ]; then msg="$msg  dangling: sites-enabled/$SITE_NAME.conf -> $(readlink "$dest")"$'\n'; fi
   fi
-  deb=$(ls "$WORK"/pkg/nginx-common_*.deb 2>/dev/null | head -1)
-  [ -n "$deb" ] || die $EX_UNAVAILABLE "apt-get download left no .deb for nginx-common=$ver; nothing was changed"
-  "$DPKG_DEB_BIN" --fsys-tarfile "$deb" 2>/dev/null | tar -xO ./etc/nginx/nginx.conf > "$RENDER/nginx.conf" 2>/dev/null
-  got=$(md5_of "$RENDER/nginx.conf")
-  [ "$got" = "$STOCK_MD5" ] || die $EX_DATA "the nginx.conf in the downloaded nginx-common package has md5 $got, but dpkg recorded md5 $STOCK_MD5 for the installed $ver; nothing was changed"
+  [ -z "$msg" ] || { printf '%s' "$msg" >&2; die $EX_DATA "$ETC_DIR is not a good deployment of this checkout: a link is missing, dangling or does not point into the checkout; nothing was changed (apply repairs it)"; }
 }
 
-# prepare_legacy is run by check and apply after render_all. It refuses a legacy host unless
-# --migrate-legacy was given, and then makes the package's nginx.conf one of the managed files.
-prepare_legacy() {
-  detect_legacy
-  # --migrate-legacy that cannot tell whether nginx.conf was edited must not look like success
-  if [ "$MIGRATE" -eq 1 ] && [ -z "$STOCK_MD5" ]; then
-    die $EX_NOINPUT "--migrate-legacy: cannot tell whether $ETC_DIR/nginx.conf was edited: dpkg-query ($DPKG_QUERY_BIN) cannot say which nginx.conf checksum the nginx-common package has"
+# ---- the post-merge hook (git does not copy hooks, so the checkout is pointed at .githooks) ------
+
+# hooks_path prints the checkout's core.hooksPath, or nothing; it prints "n/a" when the checkout is not a git
+# repository with a .githooks directory, which is nothing this script manages. (safe.directory: the script
+# runs as root over a checkout owned by another user.)
+hooks_path() {
+  { [ -d "$REPO_DIR/.git" ] || [ -f "$REPO_DIR/.git" ]; } && [ -d "$REPO_DIR/.githooks" ] || { echo "n/a"; return; }
+  command -v git >/dev/null 2>&1 || { echo "n/a"; return; }
+  git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" config --get core.hooksPath 2>/dev/null
+  return 0
+}
+
+# set_hooks_path makes core.hooksPath .githooks if it is unset, and says so if it is set to something else.
+# Written as root it would leave .git/config owned by root, so the owner of .git is restored.
+set_hooks_path() {
+  local cur; cur=$(hooks_path)
+  case "$cur" in
+    "n/a"|.githooks) return 0 ;;
+    "") ;;
+    *) echo "note: core.hooksPath in $REPO_DIR is '$cur', not .githooks, so the post-merge nginx check is not enabled"; return 0 ;;
+  esac
+  if git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" config core.hooksPath .githooks 2>/dev/null; then
+    [ "$(id -u)" != 0 ] || [ ! -d "$REPO_DIR/.git" ] || chown --reference="$REPO_DIR/.git" "$REPO_DIR/.git/config" 2>/dev/null || true
+    echo "hooks: core.hooksPath is now .githooks in $REPO_DIR (the post-merge hook runs nginx-deploy.bash verify after a pull)"
+  else
+    echo "note: could not set core.hooksPath in $REPO_DIR; run: git -C $REPO_DIR config core.hooksPath .githooks"
   fi
-  [ "$LEG_CONF" -eq 1 ] || return 0
-  [ "$MIGRATE" -eq 1 ] || refuse_legacy
-  fetch_stock
-  MANAGED+=("nginx.conf")
-  echo "legacy: $ETC_DIR/nginx.conf differs from the package's; it will be replaced by the package's own"
 }
 
 # ---- the staged tree and its gates (check, and the start of apply) -------------
@@ -433,7 +453,7 @@ build_stage() {
       die $EX_IOERR "could not copy $ETC_DIR into the stage"
     fi
   fi
-  local l rel
+  local l rel i
   find "$ETC_DIR" -type l | while read -r l; do
     [ -e "$l" ] && continue
     rel=${l#"$ETC_DIR"/}
@@ -443,10 +463,40 @@ build_stage() {
   for rel in "${MANAGED[@]}"; do
     cp "$RENDER/$rel" "$STAGE/$rel" || die $EX_IOERR "could not stage $rel"
   done
+  # the stage holds COPIES of what the links point to, never links into the checkout, so a test can not touch it
+  for i in "${!LNK_REL[@]}"; do
+    rel=${LNK_REL[$i]}
+    mkdir -p "$(dirname "$STAGE/$rel")" && rm -f "$STAGE/$rel" && cp "${LNK_TGT[$i]}" "$STAGE/$rel" || die $EX_IOERR "could not stage $rel"
+  done
   ln -sfn "$STAGE/sites-available/$SITE_NAME.conf" "$STAGE/$LINK_REL" || die $EX_IOERR "could not link the site into the stage"
   # Point the staged copy at itself, so even a test cannot change the host.
   rewrite_in_tree "$STAGE" "$ETC_DIR/" "$STAGE/"
   if [ "$KEEP" -eq 1 ]; then echo "stage: $STAGE" >&2; fi
+}
+
+# check_logging confirms the logging changes are in the staged configuration (DR-0009 decision 3): the
+# log_format exists, and every server block of this site (the ones that include the host file) sets an
+# access_log in that format, or redirect traffic writes combined-format lines into the extended log.
+check_logging() {
+  local what=${1:-staged}
+  grep -Eq '^[[:space:]]*log_format[[:space:]]+caltechdata_bots([[:space:]]|$)' "$DUMP" \
+    || die $EX_DATA "the $what configuration defines no log_format caltechdata_bots (conf.d/caltechdata_log.conf); nothing was changed on this host"
+  local bad rc
+  bad=$(awk '
+    { line=$0; sub(/^[ \t]*#.*/,"",line); sub(/[ \t]#.*$/,"",line) }
+    !insrv && line ~ /^[ \t]*server[ \t]*\{/ { insrv=1; sd=depth; ours=0; seen=0; first=NR }
+    insrv {
+      if (line ~ /caltechdata-host\.conf/) ours=1
+      if (line ~ /access_log[ \t]+[^;]*caltechdata_bots/) seen=1
+    }
+    { o=gsub(/\{/,"{",line); c=gsub(/\}/,"}",line); depth += o - c }
+    insrv && depth <= sd { if (ours && !seen) print first; insrv=0 }
+  ' "$DUMP" 2> "$WORK/awk.err")
+  rc=$?
+  [ "$rc" -eq 0 ] || { cat "$WORK/awk.err" >&2; die $EX_INTERNAL "could not read the nginx -T dump for the access_log check (awk exited $rc)"; }
+  bad=$(printf '%s' "$bad" | tr '\n' ' ')
+  [ -z "$bad" ] || die $EX_DATA "a server block of this site sets no access_log with the caltechdata_bots format (dump line $bad of the $what configuration): both server blocks, ports 80 and 443, must; nothing was changed on this host"
+  echo "logging: log_format caltechdata_bots and an access_log in every server block of the site: ok"
 }
 
 run_gates() {
@@ -475,6 +525,7 @@ run_gates() {
     cat "$WORK/nginx-T.err" >&2
     die $EX_DATA "nginx -T could not dump the staged configuration"
   fi
+  check_logging
 
   if [ "$NO_LOGAGENT" -eq 1 ]; then
     echo "logagent check: not run (--no-logagent)"
@@ -504,42 +555,54 @@ run_gates() {
 # ---- comparing the installed files with the rendered ones ----------------------
 
 CHG_REL=()     # what apply would change, relative to the etc directory
-CHG_KIND=()    # created | replaced | link-created | link-replaced
+CHG_KIND=()    # created | replaced | link-created | link-replaced | link-over-file
 CHG_OLD=()     # link-replaced: the old link target
+CHG_TGT=()     # the link kinds: what the link must point to
 REPORT=""      # the lines diff prints
+
+# plan_link REL WANT plans one link: what is installed against where it must point.
+plan_link() {
+  local rel=$1 want=$2 dest=$ETC_DIR/$1 cur
+  if [ -L "$dest" ]; then
+    cur=$(readlink "$dest")
+    if [ "$cur" = "$want" ] && [ -e "$dest" ]; then
+      REPORT="$REPORT"$'identical  '"$rel"$' -> '"$cur"$'\n'
+    else
+      CHG_REL+=("$rel"); CHG_KIND+=(link-replaced); CHG_OLD+=("$cur"); CHG_TGT+=("$want")
+      if [ -e "$dest" ]; then
+        REPORT="$REPORT"$'differs  '"$rel"$' (points to '"$cur"$', want '"$want"$')\n'
+      else
+        REPORT="$REPORT"$'differs  '"$rel"$' (dangling: points to '"$cur"$', where nothing is; want '"$want"$')\n'
+      fi
+    fi
+  elif [ -e "$dest" ]; then
+    CHG_REL+=("$rel"); CHG_KIND+=(link-over-file); CHG_OLD+=(""); CHG_TGT+=("$want")
+    REPORT="$REPORT"$'differs  '"$rel"$' (a regular file where the link belongs)\n'
+    if [ -f "$want" ]; then REPORT="$REPORT$(diff -u -L "installed/$rel" -L "repository/$rel" "$dest" "$want" 2>&1)"$'\n'; fi
+  else
+    CHG_REL+=("$rel"); CHG_KIND+=(link-created); CHG_OLD+=(""); CHG_TGT+=("$want")
+    REPORT="$REPORT"$'missing  '"$rel"$'\n'
+  fi
+}
 
 # plan_changes fills CHG_* and REPORT.
 plan_changes() {
-  local rel dest
+  local rel dest i
   for rel in "${MANAGED[@]}"; do
     dest=$ETC_DIR/$rel
     if [ ! -e "$dest" ] && [ ! -L "$dest" ]; then
-      CHG_REL+=("$rel"); CHG_KIND+=(created); CHG_OLD+=("")
+      CHG_REL+=("$rel"); CHG_KIND+=(created); CHG_OLD+=(""); CHG_TGT+=("")
       REPORT="$REPORT"$'missing  '"$rel"$'\n'
     elif cmp -s "$RENDER/$rel" "$dest"; then
       REPORT="$REPORT"$'identical  '"$rel"$'\n'
     else
-      CHG_REL+=("$rel"); CHG_KIND+=(replaced); CHG_OLD+=("")
+      CHG_REL+=("$rel"); CHG_KIND+=(replaced); CHG_OLD+=(""); CHG_TGT+=("")
       REPORT="$REPORT"$'differs  '"$rel"$'\n'
       REPORT="$REPORT$(diff -u -L "installed/$rel" -L "rendered/$rel" "$dest" "$RENDER/$rel" 2>&1)"$'\n'
     fi
   done
-  dest=$ETC_DIR/$LINK_REL
-  if [ -L "$dest" ]; then
-    local cur; cur=$(readlink "$dest")
-    if [ "$cur" = "$LINK_TARGET" ]; then
-      REPORT="$REPORT"$'identical  '"$LINK_REL"$' -> '"$cur"$'\n'
-    else
-      CHG_REL+=("$LINK_REL"); CHG_KIND+=(link-replaced); CHG_OLD+=("$cur")
-      REPORT="$REPORT"$'differs  '"$LINK_REL"$' (points to '"$cur"$', want '"$LINK_TARGET"$')\n'
-    fi
-  elif [ -e "$dest" ]; then
-    CHG_REL+=("$LINK_REL"); CHG_KIND+=(replaced); CHG_OLD+=("")
-    REPORT="$REPORT"$'differs  '"$LINK_REL"$' (a regular file where the link belongs)\n'
-  else
-    CHG_REL+=("$LINK_REL"); CHG_KIND+=(link-created); CHG_OLD+=("")
-    REPORT="$REPORT"$'missing  '"$LINK_REL"$'\n'
-  fi
+  for i in "${!LNK_REL[@]}"; do plan_link "${LNK_REL[$i]}" "${LNK_TGT[$i]}"; done
+  plan_link "$LINK_REL" "$LINK_TARGET"
 }
 
 # ---- restoring from a backup (apply's failure path, and rollback) ---------------
@@ -573,38 +636,55 @@ reload_nginx() {
 
 verb_check() {
   render_all
-  prepare_legacy
+  verify_links
   build_stage
   run_gates
   echo "check: the staged configuration for $SERVER_NAME passed; nothing was changed on this host"
 }
 
+# verify is the read-only check of a host that has been deployed. It needs no server name and no --tls, so
+# the post-pull hook and verify_rdm_boot.bash can call it: every link and host file is in place and points into
+# this checkout, nginx accepts the INSTALLED tree (the one a restart will load), and the logging changes are in it.
+verb_verify() {
+  list_links
+  verify_links strict
+  if ! "$NGINX_BIN" -t -c "$ETC_DIR/nginx.conf" > "$WORK/installed-t.out" 2>&1; then
+    cat "$WORK/installed-t.out" >&2
+    die $EX_DATA "nginx -t rejects the installed tree under $ETC_DIR; a restart of nginx would fail"
+  fi
+  echo "nginx -t on the installed tree: ok"
+  if ! "$NGINX_BIN" -T -c "$ETC_DIR/nginx.conf" > "$DUMP" 2> "$WORK/nginx-T.err"; then
+    cat "$WORK/nginx-T.err" >&2
+    die $EX_DATA "nginx -T could not dump the installed configuration"
+  fi
+  check_logging installed
+  echo "verify: $ETC_DIR is a good deployment of $REPO_DIR; nothing was changed on this host"
+  case "$(hooks_path)" in
+    "n/a"|.githooks) ;;
+    *) echo "note: git core.hooksPath in $REPO_DIR is not .githooks, so no nginx check runs after a pull; run: git -C $REPO_DIR config core.hooksPath .githooks" >&2 ;;
+  esac
+}
+
 verb_diff() {
   render_all
   plan_changes
-  detect_legacy
-  local nleg=0
-  if [ "$LEG_CONF" -eq 1 ]; then
-    REPORT="$REPORT"$'legacy  nginx.conf (differs from the nginx-common package\'s; --migrate-legacy restores the package\'s)\n'
-    nleg=$((nleg+1))
-  fi
   printf '%s' "$REPORT"
-  if [ ${#CHG_REL[@]} -eq 0 ] && [ "$nleg" -eq 0 ]; then
+  if [ ${#CHG_REL[@]} -eq 0 ]; then
     echo "no drift: the installed files match the repository's"
     exit $EX_OK
   fi
-  echo "drift: $(( ${#CHG_REL[@]} + nleg )) item(s) differ, are missing or are legacy ($nleg legacy)"
+  echo "drift: ${#CHG_REL[@]} item(s) differ or are missing"
   exit $EX_NEGATIVE
 }
 
 verb_apply() {
   render_all
-  prepare_legacy
   build_stage
   run_gates
   plan_changes
   if [ ${#CHG_REL[@]} -eq 0 ]; then
     echo "apply: no change; the installed files already match the repository's"
+    set_hooks_path
     return
   fi
   echo "apply: ${#CHG_REL[@]} item(s) to install for $SERVER_NAME:"
@@ -639,7 +719,7 @@ verb_apply() {
   for i in "${!CHG_REL[@]}"; do
     rel=${CHG_REL[$i]}; kind=${CHG_KIND[$i]}
     case "$kind" in
-      replaced)
+      replaced|link-over-file)
         mkdir -p "$(dirname "$bk/files/$rel")" && cp -p "$ETC_DIR/$rel" "$bk/files/$rel" || die $EX_CANTCREAT "could not back up $rel; nothing was changed"
         echo "replaced $rel" >> "$bk/MANIFEST" ;;
       created) echo "created $rel" >> "$bk/MANIFEST" ;;
@@ -664,9 +744,9 @@ verb_apply() {
           && install -m 0644 $OWNER "$RENDER/$rel" "$ETC_DIR/$rel.nginx-deploy.new" 2>/dev/null \
           && mv -f "$ETC_DIR/$rel.nginx-deploy.new" "$ETC_DIR/$rel" 2>/dev/null \
           || { rm -f "$ETC_DIR/$rel.nginx-deploy.new"; fail_and_restore $EX_IOERR "could not install $rel."; } ;;
-      link-created|link-replaced)
+      link-created|link-replaced|link-over-file)
         install -d -m 0755 $OWNER "$(dirname "$ETC_DIR/$rel")" 2>/dev/null \
-          && ln -sfn "$LINK_TARGET" "$ETC_DIR/$rel" 2>/dev/null \
+          && ln -sfn "${CHG_TGT[$i]}" "$ETC_DIR/$rel" 2>/dev/null \
           || fail_and_restore $EX_IOERR "could not link $rel." ;;
     esac
   done
@@ -678,6 +758,7 @@ verb_apply() {
   echo "nginx -t on the installed tree: ok"
   [ "$RELOAD" -ne 1 ] || reload_nginx
   echo "apply: installed ${#CHG_REL[@]} item(s); backup $(basename "$bk") in $BACKUP_ROOT; undo with: $PROG rollback $(basename "$bk")"
+  set_hooks_path
 }
 
 verb_rollback() {
@@ -707,5 +788,6 @@ case "$VERB" in
   diff) verb_diff ;;
   apply) verb_apply ;;
   rollback) verb_rollback ;;
+  verify) verb_verify ;;
 esac
 exit $EX_OK

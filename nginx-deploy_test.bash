@@ -185,6 +185,17 @@ t_help_lists_the_exit_status() {
   new_case $FUNCNAME; run -- --help
   eq "$RC" 0 "exit"; has "$OUT" "EXIT STATUS" "help"; has "$OUT" "check" "help names the verb"; has "$OUT" "--server-name" "help names the option"
 }
+# DR-0014: the manual's EXIT STATUS is the authority for the codes, so every code the script uses is
+# documented and every documented code is one the script defines and uses (EX_OK counts: --help exits 0).
+t_help_documents_exactly_the_exit_codes_the_script_uses() {
+  new_case $FUNCNAME; run -- --help
+  local script=$SCRIPT used documented n name
+  used=$(sed -n 's/^EX_\([A-Z]*\)=\([0-9]*\)$/\1 \2/p' "$script" | while read -r name n; do
+    [ "$(grep -c "EX_$name\b" "$script")" -gt 1 ] && echo "$n"; done | sort -n | tr '\n' ' ')
+  documented=$(printf '%s\n' "$OUT" | sed -n '/^EXIT STATUS/,$p' | sed -n 's/^ *\([0-9][0-9]*\)  .*/\1/p' | sort -n | tr '\n' ' ')
+  eq "$documented" "$used" "documented codes against the codes the script uses"
+  case " $documented " in *" 64 "*|*" 126 "*|*" 127 "*) fail "a reserved code is documented" ;; esac
+}
 t_version() { new_case $FUNCNAME; run -- --version; eq "$RC" 0 "exit"; has "$OUT" "nginx-deploy.bash 0." "version line"; }
 t_a_bad_flag_is_a_usage_error() { new_case $FUNCNAME; run -- check --frobnicate; eq "$RC" 2 "exit"; has "$ERR" "--frobnicate" "names the flag"; }
 t_a_surplus_argument_is_a_usage_error() { new_case $FUNCNAME; run -- $(std) surplus; eq "$RC" 2 "exit"; has "$ERR" "surplus" "names the argument"; }
