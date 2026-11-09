@@ -1,10 +1,10 @@
 # nginx on a CaltechDATA host
 
-The nginx configuration for CaltechDATA lives in this repository's `nginx/` tree and is installed on a host by
-`nginx-deploy.bash`. This page is for whoever has to deploy it, check it, change it, or put it back, and
-assumes you were not there when it was written. The script and its tests are ported from CaltechAUTHORS
-(caltechauthors DR-0009 and DR-0010); the port is described in the WorkLab workspace at
-`agents/projects/caltechdata/plans/nginx_deploy_port.md`.
+The nginx configuration for CaltechDATA lives in this repository's `nginx/` tree. `nginx-deploy.bash` **links** it
+into `/etc/nginx` on a host (caltechdata DR-0007), so a `git pull` changes what nginx reads. This page is for
+whoever has to deploy it, check it, change it, or put it back, and assumes you were not there when it was
+written. The script and its tests are ported from CaltechAUTHORS (caltechauthors DR-0009 to DR-0011); the port is
+described in the WorkLab workspace at `agents/projects/caltechdata/plans/nginx_deploy_port.md`.
 
 ## What is in the repository
 
@@ -12,50 +12,81 @@ assumes you were not there when it was written. The script and its tests are por
 
 | File | Installed as | What it is |
 |---|---|---|
-| `sites-available/caltechdata.conf` | `/etc/nginx/sites-available/<site-name>.conf`, linked from `sites-enabled/` | The site: ports 80 and 443, the proxy locations, the large-upload location, `/static`, the TIND-number redirects. A **template**: the script replaces `@SERVER_NAME@` and `@REPO_DIR@`. |
-| `tls/letsencrypt.conf` or `tls/self-signed.conf` | `snippets/caltechdata-tls.conf` | The certificate pair, chosen by `--tls`. |
-| `snippets/ssl-params.conf` | `snippets/ssl-params.conf` | The TLS protocols, ciphers and session settings, for every `--tls`. It carries no `add_header`: the application sends the security headers. |
-| `conf.d/caltechdata_log.conf` | `conf.d/caltechdata_log.conf` | The extended access-log format `caltechdata_bots`: the stock combined fields plus request and upstream time, Cloudflare ray, country, bot score and TLS fingerprints, the connecting address, and language and client-hint headers. It only **defines** the format; each server block of the site sets `access_log ... caltechdata_bots;` itself. `logagent` reads this layout. |
-| `conf.d/cloudflare_real_ip.conf` | `conf.d/cloudflare_real_ip.conf` | The published Cloudflare address ranges that nginx trusts to say who the client is (`real_ip_header CF-Connecting-IP`). Inert where no Cloudflare is in front. The same list as CaltechAUTHORS'; refresh it from Cloudflare's published list when that changes. |
+| `sites-available/caltechdata.conf` | linked as `/etc/nginx/sites-available/<site-name>.conf`, which `sites-enabled/` links to | The site: ports 80 and 443, the proxy locations, the large-upload location, `/static`, the TIND-number redirects. It holds **no host-specific value**. |
+| `redirect-map.conf` | linked as `snippets/caltechdata-redirect-map.conf` | The TIND-number redirect map, included by the site file. |
+| *(written by the script)* | `snippets/caltechdata-host.conf` | Not a link. The host's `server_name` and the path of the static files (`set $caltechdata_static ...`), the one file that differs per host besides the next. |
+| `tls/letsencrypt.conf` or `tls/self-signed.conf` | `snippets/caltechdata-tls.conf` | Not a link. The certificate pair, chosen by `--tls`. |
+| `snippets/ssl-params.conf` | linked as `snippets/ssl-params.conf` | The TLS protocols, ciphers and session settings, for every `--tls`. It carries no `add_header`: the application sends the security headers. |
+| `conf.d/caltechdata_log.conf` | linked into `conf.d/` | The extended access-log format `caltechdata_bots`: the stock combined fields plus request and upstream time, Cloudflare ray, country, bot score and TLS fingerprints, the connecting address, and language and client-hint headers. It only **defines** the format; each server block of the site sets `access_log ... caltechdata_bots;` itself. `logagent` reads this layout. |
+| `conf.d/cloudflare_real_ip.conf` | linked into `conf.d/` | The published Cloudflare address ranges that nginx trusts to say who the client is (`real_ip_header CF-Connecting-IP`). Inert where no Cloudflare is in front. The same list as CaltechAUTHORS'; refresh it from Cloudflare's published list when that changes. |
 
-`conf.d/` holds only the log format and the Cloudflare list, which production kept outside the repository: its
-live `nginx.conf` was hand-edited to include a `caltechdata_log.conf`, and its `conf.d/` had a hand-made
-`cloudflare_real_ip.conf`. `--migrate-legacy` puts the package's `nginx.conf` back, which drops that include, so
-both files ship here and the site sets `access_log` itself. CaltechAUTHORS has more in its `conf.d/` (concurrency
+`conf.d/` holds only the log format and the Cloudflare list. CaltechAUTHORS has more in its `conf.d/` (concurrency
 caps, an IIIF cache) because of incidents there; none of that was carried over without evidence that CaltechDATA
 needs it. The log format is production's, unchanged; it is CaltechAUTHORS' without the trailing
 `cache="$upstream_cache_status"` field, because CaltechDATA has no such cache. If the script finds
-`nginx/conf.d/*.conf` it overlays them like the rest, so adding another needs no script change.
+`nginx/conf.d/*.conf` it links them like the rest, so adding another needs no script change.
 
 Do not add an `access_log` to either file: at `http` level it would log every request a second time, in a
 different layout.
 
-The TIND-number redirect map is `nginx/redirect-map.conf`. It is not installed under `/etc/nginx`; the site
-file includes it from the checkout by absolute path (`@REPO_DIR@/nginx/redirect-map.conf`).
+The site file is included through `/etc/nginx`, never by a path into the checkout, so a file that moves in the
+repository leaves a **dangling link** that `check` and `verify` report, instead of a configuration that will not
+load. The script never edits the packaged `/etc/nginx/nginx.conf`.
 
-The script installs by **copy**, never by symlink, so editing the checkout is never a live change to a host.
-It never edits the packaged `/etc/nginx/nginx.conf`, except that `--migrate-legacy` puts the package's own file
-back over a hand-edited one.
+## Upgrading a host
+
+A `git pull` is a live change to a linked host: nginx reads the checkout's files at its next reload or restart,
+including a restart nobody asked for (an unattended upgrade restarts every service). So **after any pull, and
+before restarting anything**:
+
+```shell
+git pull
+sudo ./nginx-deploy.bash verify
+sudo systemctl restart nginx          # then the RDM services, as usual
+```
+
+`verify` needs no server name and no `--tls`. It is read-only: every link and host file must be in place and
+point into this checkout, `nginx -t` must accept the **installed** tree (the one a restart loads), and the log
+format and both servers' `access_log` must be in effect. It exits 65 and names what is wrong. If it fails because
+of a link, run `apply` (it repairs links and is safe to run again), then `verify` again. `check` is the other
+direction: it tests what `apply` *would* install, and needs `--server-name` and `--tls`.
+
+`apply` also sets `core.hooksPath` to `.githooks` in the checkout, because git does not copy hooks. After that a
+`post-merge` hook (and `post-rewrite`, for `git pull --rebase`) runs `verify` after each pull on a deployed host
+and prints a banner if it fails or could not run. It only warns: git ignores a hook's exit status, and it does
+not run on `git reset --hard` or `git checkout`, so the step above is still the guard. The hook needs passwordless
+`sudo`; without it the banner says the check was not run, and gives the command. A clone that was never deployed
+(a developer's laptop) prints nothing. The hook uses `verify`'s default site name; a host deployed with
+`--site-name` needs to run `verify --site-name NAME` by hand. When a pull *moves or removes* a repository file,
+`verify` cannot find its input and exits 66, so the banner is the weaker "could not be run, nginx is NOT checked"
+one; treat it the same way: do not restart nginx until `apply` and `verify` are clean.
 
 ## The verbs
 
-All of them need `--server-name` and `--tls`; `nginx-deploy.bash --help` is the full manual.
+`check`, `diff` and `apply` need `--server-name` and `--tls`; `nginx-deploy.bash --help` is the full manual.
 
 ```shell
-sudo ./nginx-deploy.bash check  --server-name data.caltech.edu --tls letsencrypt
-sudo ./nginx-deploy.bash diff   --server-name data.caltech.edu --tls letsencrypt
-sudo ./nginx-deploy.bash apply  --server-name data.caltech.edu --tls letsencrypt --reload
+sudo ./nginx-deploy.bash check  --server-name data.caltechlibrary.dev --tls letsencrypt
+sudo ./nginx-deploy.bash diff   --server-name data.caltechlibrary.dev --tls letsencrypt
+sudo ./nginx-deploy.bash apply  --server-name data.caltechlibrary.dev --tls letsencrypt --reload
+sudo ./nginx-deploy.bash verify
 sudo ./nginx-deploy.bash rollback --reload
 ```
 
-- **check** renders the files, builds a *staged* copy of the host's `/etc/nginx` with them laid over it, and
-  tests that copy with `nginx -t -c`, and with `logagent check` when `logagent` is installed. It changes
-  nothing on the host.
-- **diff** compares what is installed with what would be rendered. Exit 1 means drift.
-- **apply** runs check, backs up what it will replace, copies, runs `nginx -t` on the installed tree, and
-  **restores the backup if that fails**. It reloads nginx only with `--reload`, and asks first unless `--yes`.
-- **rollback** puts back the latest backup (or the one named by its stamp), tests it, and reloads only with
-  `--reload`. Backups are in `/var/backups/caltechdata-nginx`.
+- **check** first fails (65) on a dangling link or one that does not point into this checkout. It then builds a
+  *staged* copy of the host's `/etc/nginx` with copies of the repository's files and the host files laid over it,
+  tests that copy with `nginx -t -c`, confirms that the `caltechdata_bots` log format exists and that both server
+  blocks set an `access_log` in it, and runs `logagent check` when `logagent` is installed. It changes nothing on
+  the host.
+- **verify** is the read-only check of a host that is already deployed (see *Upgrading a host*).
+- **diff** compares what is installed with what `apply` would install. Exit 1 means drift: a missing or wrong
+  link, a regular file where a link belongs, or a host file that differs. A changed file behind a correct link is
+  not drift; that is a pull.
+- **apply** runs check, backs up what it will replace, makes the links and writes the host files, runs `nginx -t`
+  on the installed tree, and **restores the backup if that fails**. It replaces a hand-made copy with a link (the
+  copy is in the backup). It reloads nginx only with `--reload`, and asks first unless `--yes`.
+- **rollback** puts back the latest backup (or the one named by its stamp, which `apply` prints), tests it, and
+  reloads only with `--reload`. Backups are in `/var/backups/caltechdata-nginx`.
 
 Use `--cert-name` when the Let's Encrypt lineage is not named after the server name, and `--site-name` to change
 the file's name under `sites-available/` (default `caltechdata`). A new instance's `cloud-init` calls
@@ -65,12 +96,11 @@ the file's name under `sites-available/` (default `caltechdata`). A new instance
 
 The script uses the workspace's exit codes. The ones that matter in practice: **1** drift (`diff`) or a declined
 `apply`; **2** a bad command line; **65** the configuration was rejected (`nginx -t` failed or `logagent` found a
-gap, before any change or after one that was then restored), a token was left unreplaced, the host has a
-hand-edited `nginx.conf` and `--migrate-legacy` was not given, or the package's file does not match its
-recorded checksum, or **another enabled site answers for the same `server_name`** (see below); **66** something the command needs is missing; **69** `--reload` could not reload nginx (the
-files are installed and `nginx -t` passes, nginx keeps serving the old configuration), or `apt-get` could not
-download the package for `--migrate-legacy` (nothing was changed); **74** a copy failed part way (the backup was
-restored); **77** not root. `--help` lists all of them under EXIT STATUS.
+gap, before any change or after one that was then restored), a token was left in a linked file, a link is
+missing, dangling or points outside the checkout, or **another enabled site answers for the same `server_name`**
+(see below); **66** something the command needs is missing; **69** `--reload` could not reload nginx (the files
+are installed and `nginx -t` passes, nginx keeps serving the old configuration); **74** a copy failed part way
+(the backup was restored); **77** not root. `--help` lists all of them under EXIT STATUS.
 
 ## Reloading
 
@@ -128,38 +158,32 @@ missing. How the pair got there is up to the host.
 `Adding-a-Certbot-Hostname.md` is the how-to. The one rule is `certbot certonly`, **never `certbot --nginx`**, on a
 host this script manages: `certbot --nginx` inserts certificate lines into the site file, and the next deployment
 would remove or duplicate them. Renewals replace the files under `/etc/letsencrypt/live/` and do not touch the
-repository's files.
+repository's files. A host whose renewal is configured for the nginx authenticator (`certbot --nginx`) could write
+through a link into the checkout: reissue it with `certbot certonly --standalone` and stop and start hooks for nginx
+(or a DNS challenge), and compare the checkout's `git status` after any renewal or dry run.
 
-## A host that was configured by hand
+## A host that was set up before this layout
 
-A host set up before this layout (production, until it is migrated) may have an `/etc/nginx/nginx.conf` edited
-away from the nginx-common package's. `check` and `apply` refuse such a host with exit 65 and change nothing.
-Rerun with `--migrate-legacy`: it backs up `nginx.conf`, puts back the package's own (taken from the
-nginx-common `.deb`, and accepted only if its checksum is the one `dpkg` recorded), and installs. `rollback`
-undoes all of it. Do this in a quiet window, with `--reload`.
+A host from before the link layout (this one, until 2026-11) has the same files as **regular copies**:
+`conf.d/*` and `sites-available/caltechdata.conf`, with the host's paths written in. `diff` lists each as drift,
+and `apply` replaces each with a link, keeping the copy in the backup, so `rollback` puts it back. Run `diff`
+first and read it.
 
-- **The package's file is fetched by version, then by archive.** The script first asks `apt-get` for the
-  installed version of nginx-common. A host that has not taken the latest update may have a version the archive
-  no longer carries, so it then tries the archive's current package. The checksum test is the same either way: the
-  file must be the one `dpkg` recorded for the *installed* version, or nothing is changed (exit 65). If
-  `apt-get` finds nothing at all, the package index is probably stale: run `apt-get update` and repeat
-  (exit 69, nothing changed).
-- **Without `dpkg` nothing can be recognised.** Where `dpkg-query` cannot say what the package's `nginx.conf` is,
-  a hand edit cannot be seen, so `check` and `apply` treat the host as stock, and `--migrate-legacy` stops with
-  exit 66 instead of reporting success.
+- **This script has no `--migrate-legacy`.** CaltechAUTHORS's does, for a hand-edited `nginx.conf`; that code was
+  not carried over, because the replacement host does not need it (DR-0007). Production (`new-data`) was surveyed read-only
+  on 2026-10-29: its live site is Ubuntu's `default`, edited in place, and its `nginx.conf` includes a hand-made
+  log file. Moving production is a separate piece of work with its own decision record.
 - **Other sites are not touched, but a clash is refused.** The script manages only the files in the table above.
   An older hand-made site still linked from `sites-enabled/` (including Ubuntu's `default`) stays where it is.
   `nginx -t` *passes* when two enabled sites claim one `server_name` on one port: it only warns `conflicting
   server name ... ignored` and serves whichever it read first. So `check` and `apply` stop (exit 65, nothing
-  changed) when that warning appears in the staged test, quote it, and list what is in `sites-enabled/`. Other
-  nginx warnings do not block. **Move the old site's link out of `sites-enabled/` yourself, the link and not the
-  file**, then repeat the command; run `diff` first to see what will change. A site on a different name or port is
-  left alone, and the script cannot know that it is the old one. Production (`new-data`) was surveyed read-only on
-  2026-10-29: its live site is Ubuntu's `default`, edited in place, so a host like that needs the old link moved
-  out. A replacement host built from `cloud-init` has no old site and does not.
+  changed) when that warning appears in the staged test, quote it, and list what is in `sites-enabled/`. **Move
+  the old site's link out of `sites-enabled/` yourself, the link and not the file**, then repeat the command.
+  `data.caltechlibrary.dev` has an old `sites-available/data.caltechlibrary.dev-tom` that is not enabled, so it
+  does not clash while it stays out of `sites-enabled/`.
 
-`snippets/ssl-params.conf` is not legacy. It is an ordinary managed file, so `diff` shows how a host's copy
-differs and `apply` replaces it, with a backup.
+`snippets/ssl-params.conf` is an ordinary managed file, so `diff` shows how a host's copy differs and `apply`
+replaces it, with a backup.
 
 ## Changing the hostname
 
@@ -178,12 +202,19 @@ the numeric record numbers CaltechDATA had when it was TIND, mapped to its RDM i
 September 2022, and nothing in the repository says how often those old URLs are still requested. The site file
 turns a match into a `301` with `if ($redirect_uri) { return 301 $redirect_uri; }` at server level, placed after
 the locations. The map yields an empty string for any URI it does not list, which is falsy, so every current URL
-passes through untouched. To add an entry, add a line inside the `map { }` block, then `check`, `diff` and
-`apply --reload`.
+passes through untouched. To add an entry, add a line inside the `map { }` block and commit it; on a host, pull, then
+`verify`, and reload nginx (the link means no `apply` is needed for an edit to an existing file).
 
 ## What has been verified, and what has not
 
-On 2026-10-28, in the Multipass VM `nginx-stage` (Ubuntu 24.04, nginx 1.24.0, a hand-edited `nginx.conf`):
+On 2026-11-06, in a Multipass VM (Ubuntu 24.04, nginx 1.24.0, the host's version), the link-based script (0.0.5) over a read-only
+capture of `data.caltechlibrary.dev`'s `/etc/nginx`: `diff` found 6 items; `apply` made 4 `link-over-file`; `verify`,
+`diff` and a second `apply` were then clean and changed nothing; `nginx -t` passed on the staged and installed trees;
+a restart of nginx came back; and `/records/204` and `/terms` redirected through the linked map. Whether the same
+holds on the real host is recorded in the plan's phase R8, not here.
+
+Earlier, on 2026-10-28, in the Multipass VM `nginx-stage` (Ubuntu 24.04, nginx 1.24.0, a hand-edited `nginx.conf`),
+with the copy-based script 0.0.4 (which still had `--migrate-legacy`):
 
 - `check` refused the hand-edited host (65), and `check --migrate-legacy` passed `nginx -t` on the staged tree
   with the real redirect map.
@@ -210,13 +241,15 @@ passed on 2026-10-23); and production's current configuration beyond the survey.
   built from this tree sends `Strict-Transport-Security: max-age=15768000`.
 - **It logs in the extended format on both ports,** and `nginx.conf` stays the package's.
 
-On the stage VM (nginx 1.24.0), `apply --migrate-legacy` installed the seven items, both server blocks logged in the
+On the stage VM (nginx 1.24.0, script 0.0.4), `apply --migrate-legacy` installed the seven items, both server blocks logged in the
 format with the Cloudflare headers carried through, and `rollback` restored `/etc/nginx` byte for byte.
 
 ## Where to look when it is wrong
 
 - `sudo ./nginx-deploy.bash diff ...` says what differs from the repository.
+- `sudo ./nginx-deploy.bash verify` says whether the installed tree is intact and loadable.
 - `sudo nginx -t` tests the installed tree. `/var/log/nginx/error.log` has the `413` and upstream errors.
 - `sudo ./nginx-deploy.bash check ...` on a copy of the host's configuration is the way to try a change.
 - The reasons for each choice are in the workspace's decision records: caltechdata DR-0001 and DR-0002, and
-  caltechauthors DR-0009 and DR-0010 for the script.
+  caltechdata DR-0007 (links, the check after a pull, the reboot scripts), and caltechauthors DR-0009 to DR-0011
+  for the script.

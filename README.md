@@ -79,14 +79,22 @@ AWS instance.
 
 Install the nginx configuration with `./nginx-deploy.bash` (see
 `docs/nginx.md`). The configuration is in the `nginx/` directory, which mirrors
-`/etc/nginx`: the site template, the TLS snippets, and `redirect-map.conf`
-(TIND record numbers to RDM identifiers). The script renders it for the host,
-checks it with `nginx -t` before copying anything, and leaves the packaged
-`/etc/nginx/nginx.conf` alone. Get the certificate with `sudo certbot certonly`,
-never `certbot --nginx` (`docs/Adding-a-Certbot-Hostname.md`): that edits the
-deployed site file, and the next deployment removes or duplicates the edit.
-`docs/nginx.md` also covers rolling back and migrating a host that was
-configured by hand.
+`/etc/nginx`: the site file, the TLS snippets, the log format and
+`redirect-map.conf` (TIND record numbers to RDM identifiers). The script
+checks it with `nginx -t` on a staged copy before changing anything, then
+**links** the files into `/etc/nginx` (so a `git pull` changes what nginx reads)
+and leaves the packaged `/etc/nginx/nginx.conf` alone. After any pull, run
+`sudo ./nginx-deploy.bash verify` before restarting nginx; the post-merge hook
+that `apply` enables does this and warns if it fails. Get the certificate with
+`sudo certbot certonly`, never `certbot --nginx`
+(`docs/Adding-a-Certbot-Hostname.md`): that edits files the script owns.
+`docs/nginx.md` also covers rolling back and a host that still has copies.
+
+Two scripts in `admin/` serve the reboot check: `safe_to_reboot.bash` reports
+whether a reboot is safe (units, a SQL backup, an OpenSearch snapshot, an
+upload in progress) and `caltechdata_down.bash` stops the services in order.
+`check-for-reboot.bash` from the private `admin-shell-scripts` repository calls
+the first; `cloud-init` installs both into `/usr/local/bin`.
 
 ### Systemctl
 
