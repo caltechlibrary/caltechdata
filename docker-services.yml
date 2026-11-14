@@ -26,7 +26,7 @@ services:
     ports:
       - "${DOCKER_SERVICES_IP_BIND:-127.0.0.1}:6379:6379"
   db:
-    image: postgres:12.4
+    image: postgres:14.13
     restart: "unless-stopped"
     environment:
       - "POSTGRES_USER=caltechdata"
@@ -58,7 +58,7 @@ services:
     environment:
       # settings only for development. DO NOT use in production!
       - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "OPENSEARCH_JAVA_OPTS=-Xms4g -Xmx4g"
       - "DISABLE_INSTALL_DEMO_CONFIG=true"
       - "DISABLE_SECURITY_PLUGIN=true"
       - "discovery.type=single-node"

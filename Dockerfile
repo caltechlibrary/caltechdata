@@ -14,7 +14,6 @@ COPY site ./site
 COPY Pipfile Pipfile.lock ./
 RUN pipenv install --deploy --system
 
-COPY ./docker/uwsgi/ ${INVENIO_INSTANCE_PATH}
 COPY ./invenio.cfg ${INVENIO_INSTANCE_PATH}
 COPY ./templates/ ${INVENIO_INSTANCE_PATH}/templates/
 COPY ./app_data/ ${INVENIO_INSTANCE_PATH}/app_data/
