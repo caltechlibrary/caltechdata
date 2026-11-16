@@ -94,6 +94,13 @@ for f in cloud-init.yaml cloud-init-multipass.yaml; do
   check "$f: the stale 'caltechdata does not have nginx-deploy.bash yet' note is gone" lacks "$f" "which caltechdata does not have yet"
   check "$f: the stale 'stops with a message until it is ported' note is gone" lacks "$f" "stops with a message until it is ported"
   check "$f: the guard's message no longer says the script is yet to be ported" lacks "$f" "It is ported from caltechdata on the"
+  check "$f: .env sets INVENIO_PROXYFIX_CONFIG (without it SAML presents http:// URLs under Granian)" contains "$f" 'INVENIO_PROXYFIX_CONFIG={"x_for": 1, "x_proto": 1}'
+  check "$f: .env suppresses mail, so a host holding real users cannot email them before cutover" contains "$f" 'INVENIO_MAIL_SUPPRESS_SEND=True'
+  check "$f: the server name is not hard-coded (SERVER_NAME, default _)" contains "$f" 'SERVER_NAME="${SERVER_NAME:-_}"'
+  check "$f: the TLS mode is not hard-coded (TLS_MODE, default self-signed)" contains "$f" 'TLS_MODE="${TLS_MODE:-self-signed}"'
+  check "$f: nginx-deploy.bash apply takes the server name and TLS mode from those variables" contains "$f" '--server-name "$SERVER_NAME" --tls "$TLS_MODE"'
+  check "$f: the hard-coded '--server-name _ --tls self-signed' is gone" lacks "$f" '--server-name _ --tls self-signed'
+  check "$f: an existing checkout is updated, not cloned over (a rerun does not die)" contains "$f" 'git -C "/Sites/${INSTANCE_NAME}" fetch'
 done
 
 check gitignore_covers_celerybeat_db gitignore_covers_celerybeat_db

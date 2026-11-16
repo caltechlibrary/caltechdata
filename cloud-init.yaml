@@ -411,11 +411,16 @@ write_files:
       # in after boot and run this manually so each step can be watched/
       # debugged.
       #
-      # USAGE: setup_caltechdata.bash [BRANCH] [REPO_URL]
+      # USAGE: [SERVER_NAME=NAME] [TLS_MODE=MODE] setup_caltechdata.bash [BRANCH] [REPO_URL]
+      #   SERVER_NAME  nginx server_name (default _, any name)
+      #   TLS_MODE     letsencrypt or self-signed (default self-signed; letsencrypt
+      #                needs the certificate lineage to exist already)
       set -euo pipefail
       BRANCH="${1:-rsdoiel}"
       REPO_URL="${2:-https://github.com/caltechlibrary/caltechdata.git}"
       INSTANCE_NAME="caltechdata"
+      SERVER_NAME="${SERVER_NAME:-_}"
+      TLS_MODE="${TLS_MODE:-self-signed}"
 
       export NVM_DIR="$HOME/.nvm"
       [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
@@ -438,8 +443,15 @@ write_files:
       sudo chown "$USER" /Sites
       cd /Sites
 
-      echo "Cloning ${REPO_URL} (branch ${BRANCH}) into /Sites/${INSTANCE_NAME}"
-      git clone --branch "$BRANCH" "$REPO_URL" "$INSTANCE_NAME"
+      if [ -d "/Sites/${INSTANCE_NAME}/.git" ]; then
+        echo "/Sites/${INSTANCE_NAME} is already a checkout: updating it to ${BRANCH}"
+        git -C "/Sites/${INSTANCE_NAME}" fetch origin
+        git -C "/Sites/${INSTANCE_NAME}" checkout "$BRANCH"
+        git -C "/Sites/${INSTANCE_NAME}" merge --ff-only "origin/${BRANCH}"
+      else
+        echo "Cloning ${REPO_URL} (branch ${BRANCH}) into /Sites/${INSTANCE_NAME}"
+        git clone --branch "$BRANCH" "$REPO_URL" "$INSTANCE_NAME"
+      fi
       cd "/Sites/${INSTANCE_NAME}"
       if [ ! -f nginx-deploy.bash ]; then
         echo "ERROR: branch ${BRANCH} has no nginx-deploy.bash, which this script uses to" >&2
@@ -512,7 +524,7 @@ write_files:
       # default_server and would collide with ours, so it goes first.
       sudo rm -f /etc/nginx/sites-enabled/default
       sudo bash "/Sites/${INSTANCE_NAME}/nginx-deploy.bash" apply --yes --reload \
-        --site-name "${INSTANCE_NAME}" --server-name _ --tls self-signed \
+        --site-name "${INSTANCE_NAME}" --server-name "$SERVER_NAME" --tls "$TLS_MODE" \
         --repo-dir "/Sites/${INSTANCE_NAME}"
 
       # The RDM-specific reboot scripts live in this repository (admin/). They are
@@ -560,6 +572,8 @@ write_files:
       INVENIO_DATACITE_TEST_MODE=True
       INVENIO_FILES_REST_STORAGE_FACTORY=invenio_files_rest.storage.pyfs_storage_factory
       INVENIO_TRUSTED_HOSTS=["localhost","127.0.0.1","0.0.0.0"]
+      INVENIO_PROXYFIX_CONFIG={"x_for": 1, "x_proto": 1}
+      INVENIO_MAIL_SUPPRESS_SEND=True
       EOT
       chmod 600 .env
 
