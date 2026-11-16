@@ -241,6 +241,9 @@ write_files:
       # USAGE: verify_rdm_boot.bash [INSTANCE_NAME]
       set -uo pipefail
       INSTANCE_NAME="${1:-caltechdata}"
+      # The requests below are made as a client of the site: invenio.cfg trusts only data.caltech.edu, so a request with
+      # Host: localhost is refused (HTTP 400) on any host configured as production. SITE_HOST overrides the name.
+      SITE_HOST="${SITE_HOST:-data.caltech.edu}"
       FAILURES=0
 
       check() {
@@ -296,7 +299,7 @@ write_files:
       # shellcheck disable=SC2329  # called indirectly via check()'s "$@"
       api_responds() {
         local code
-        code="$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 https://localhost/api/records)"
+        code="$(curl -sk -o /dev/null -w '%{http_code}' --max-time 15 -H "Host: ${SITE_HOST}" https://localhost/api/records)"
         [ "$code" = "200" ]
       }
 
@@ -312,7 +315,7 @@ write_files:
         # above stayed green the whole time this was broken, because a plain
         # 200 never exercises URL generation.
         local location
-        location="$(curl -sk -D - -o /dev/null --max-time 15 https://localhost/api/banners \
+        location="$(curl -sk -D - -o /dev/null --max-time 15 -H "Host: ${SITE_HOST}" https://localhost/api/banners \
           | tr -d '\r' | awk 'BEGIN { IGNORECASE = 1 } /^location:/ { print $2 }')"
         # No Location at all means no redirect was issued, which is fine. A
         # redirect that has lost the /api prefix is the bug.
@@ -327,7 +330,7 @@ write_files:
         # Talisman's leaves the response carrying two conflicting values,
         # which browsers treat as one invalid directive and refuse to frame.
         local count
-        count="$(curl -sk -D - -o /dev/null --max-time 15 https://localhost/ \
+        count="$(curl -sk -D - -o /dev/null --max-time 15 -H "Host: ${SITE_HOST}" https://localhost/ \
           | grep -ci '^x-frame-options:')"
         [ "$count" = "1" ]
       }
@@ -348,9 +351,9 @@ write_files:
         # application/octet-stream. One line asserts the fix, the other
         # asserts the fix cost nothing.
         local mjs css
-        mjs="$(curl -sk -o /dev/null -w '%{http_code} %{content_type}' --max-time 15 \
+        mjs="$(curl -sk -o /dev/null -w '%{http_code} %{content_type}' --max-time 15 -H "Host: ${SITE_HOST}" \
           https://localhost/static/js/pdfjs/build/pdf.mjs)"
-        css="$(curl -sk -o /dev/null -w '%{http_code} %{content_type}' --max-time 15 \
+        css="$(curl -sk -o /dev/null -w '%{http_code} %{content_type}' --max-time 15 -H "Host: ${SITE_HOST}" \
           https://localhost/static/js/pdfjs/web/pdf_viewer.css)"
         [ "$mjs" = "200 text/javascript" ] && [ "$css" = "200 text/css" ]
       }
@@ -571,7 +574,7 @@ write_files:
       INVENIO_DATACITE_ENABLED=True
       INVENIO_DATACITE_TEST_MODE=True
       INVENIO_FILES_REST_STORAGE_FACTORY=invenio_files_rest.storage.pyfs_storage_factory
-      INVENIO_TRUSTED_HOSTS=["localhost","127.0.0.1","0.0.0.0"]
+      INVENIO_TRUSTED_HOSTS=["data.caltech.edu","localhost","127.0.0.1","0.0.0.0"]
       INVENIO_PROXYFIX_CONFIG={"x_for": 1, "x_proto": 1}
       INVENIO_MAIL_SUPPRESS_SEND=True
       EOT

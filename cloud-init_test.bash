@@ -77,6 +77,23 @@ lacks() {
   ! grep -qF -- "$2" "$DIR/$1"
 }
 
+
+# the boot check asks as a client of the site, not of "localhost": production's invenio.cfg trusts only data.caltech.edu, so a
+# request with Host: localhost is refused with 400 once a host is configured as production (2026-11-16, caltechdata-v14).
+count_is() { [ "$(grep -cF -- "$2" "$DIR/$1")" -eq "$3" ]; }
+
+# api_responds, extracted from the YAML and run with a stub curl, must send the site's Host header
+api_responds_sends_the_site_host() {
+  local scratch fn rc=1
+  scratch=$(mktemp -d "${TMPDIR:-/tmp}/cloud-init-test.XXXXXX") || return 1
+  printf '#!/bin/sh\necho "$@" >> "%s/args"\necho 200\n' "$scratch" > "$scratch/curl" && chmod +x "$scratch/curl"
+  fn=$(sed -n '/^      api_responds() {/,/^      }/p' "$DIR/$1" | sed 's/^      //')
+  [ -n "$fn" ] || { rm -rf "$scratch"; return 1; }
+  ( PATH="$scratch:$PATH"; SITE_HOST=data.caltech.edu; eval "$fn"; api_responds ) && grep -q 'Host: data.caltech.edu' "$scratch/args" && rc=0
+  rm -rf "$scratch"
+  return $rc
+}
+
 # the reboot scripts, the nginx check at boot, and the nginx install (caltechdata DR-0007, plan R5). The
 # two files share one body, so every case runs against both.
 for f in cloud-init.yaml cloud-init-multipass.yaml; do
@@ -101,6 +118,11 @@ for f in cloud-init.yaml cloud-init-multipass.yaml; do
   check "$f: nginx-deploy.bash apply takes the server name and TLS mode from those variables" contains "$f" '--server-name "$SERVER_NAME" --tls "$TLS_MODE"'
   check "$f: the hard-coded '--server-name _ --tls self-signed' is gone" lacks "$f" '--server-name _ --tls self-signed'
   check "$f: an existing checkout is updated, not cloned over (a rerun does not die)" contains "$f" 'git -C "/Sites/${INSTANCE_NAME}" fetch'
+  check "$f: the boot check's site host defaults to data.caltech.edu (SITE_HOST)" contains "$f" 'SITE_HOST="${SITE_HOST:-data.caltech.edu}"'
+  check "$f: all five boot-check requests send that Host header" count_is "$f" '-H "Host: ${SITE_HOST}"' 5
+  check "$f: api_responds sends the site's Host header (stub curl)" api_responds_sends_the_site_host "$f"
+  check "$f: a test instance's trusted hosts also admit data.caltech.edu, so the boot check passes there" contains "$f" 'INVENIO_TRUSTED_HOSTS=["data.caltech.edu","localhost","127.0.0.1","0.0.0.0"]'
+  check "$f: the old localhost-only trusted hosts line is gone" lacks "$f" 'INVENIO_TRUSTED_HOSTS=["localhost","127.0.0.1","0.0.0.0"]'
 done
 
 check gitignore_covers_celerybeat_db gitignore_covers_celerybeat_db
