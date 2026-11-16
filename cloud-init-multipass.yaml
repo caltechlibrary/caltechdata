@@ -73,7 +73,7 @@
 # the UI beyond the boot check, SAML, OSN.
 package_update: true
 package_upgrade: true
-fqdn: caltechdata-granian.local
+fqdn: caltechdata-v14.local
 packages:
   - sshfs
   - build-essential
