@@ -1,14 +1,28 @@
 [Unit]
-Description=Launch InvenioRDM Web Interface
+Description=Launch InvenioRDM Web Interface (Granian, UI)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+# Wants= on rdm.target propagates start only; stopping the target
+# stops a member unit only if the member declares PartOf=.
+PartOf=rdm.target
 
 [Service]
 Type=simple
-User=inveniordm
-StandardOutput=kmsg
-StandardError=kmsg
+User=ubuntu
+StandardOutput=journal
+StandardError=journal
 WorkingDirectory=/Sites/caltechdata
 EnvironmentFile=/Sites/caltechdata/.env
-ExecStart=/snap/bin/uv run uwsgi --logger syslog:inveniordm_ui uwsgi_ui.ini
+ExecStart=/home/ubuntu/.local/bin/uv run --no-sync granian --interface wsgi invenio_app.wsgi_ui:application --host 0.0.0.0 --port 5000 --workers 6 --blocking-threads 5 --workers-max-rss 1800 --respawn-failed-workers
+# Default control-group kill SIGTERMs the workers out from under the
+# master, which reads them as crashes and (with
+# --respawn-failed-workers) tries to replace them until
+# TimeoutStopSec expires. Signal the master alone and let it drain.
+KillMode=mixed
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

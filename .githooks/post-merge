@@ -1,0 +1,56 @@
+#!/bin/bash
+#
+# post-merge - after a git pull, check that nginx will still start (caltechdata DR-0007).
+#
+# The nginx configuration on a host is linked from this checkout, so a pull is a live change at the next
+# restart, including one nobody asked for (an unattended upgrade restarts every service). On 2026-11-05 a pull
+# had moved redirect-map.conf nine days earlier, nothing checked, and nginx would not start. This hook runs
+# `nginx-deploy.bash verify` on a host that has been deployed and says loudly if it fails.
+#
+# It is a WARNING, not a guard: git ignores a hook's exit status, it does not run on `reset --hard` or
+# `checkout`, and hooks are not copied by `git clone` (apply sets core.hooksPath to .githooks). The step that
+# matters is still: after any pull, run `sudo ./nginx-deploy.bash verify` before restarting anything.
+#
+# A developer's clone, with no /etc/nginx/snippets/caltechdata-host.conf, is left alone and prints nothing.
+#
+# ENVIRONMENT (for tests): NGINX_DEPLOY, NGINX_DEPLOY_ETC, NGINX_DEPLOY_SUDO.
+
+repo=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+etc=${NGINX_DEPLOY_ETC:-/etc/nginx}
+deploy=${NGINX_DEPLOY:-$repo/nginx-deploy.bash}
+[ -e "$etc/snippets/caltechdata-host.conf" ] || exit 0
+
+banner() { # banner TITLE LINES...
+  local title=$1; shift
+  {
+    echo
+    echo "################################################################################"
+    echo "# $title"
+    echo "################################################################################"
+    for line in "$@"; do echo "$line"; done
+    echo
+  } >&2
+}
+
+if [ ! -f "$deploy" ]; then
+  banner "NGINX CHECK COULD NOT BE RUN after this pull" "$deploy is missing from the checkout."
+  exit 0
+fi
+
+if [ "$(id -u)" = 0 ]; then
+  out=$(bash "$deploy" verify --repo-dir "$repo" --etc-dir "$etc" 2>&1)
+else
+  # shellcheck disable=SC2086  # NGINX_DEPLOY_SUDO is a command and its flags
+  out=$(${NGINX_DEPLOY_SUDO:-sudo -n} bash "$deploy" verify --repo-dir "$repo" --etc-dir "$etc" 2>&1)
+fi
+rc=$?
+
+case "$rc" in
+  0) echo "nginx: checked after the pull (nginx-deploy.bash verify): ok" >&2 ;;
+  65) banner "NGINX CHECK FAILED after this pull: do not restart nginx" "$out" \
+        "" "A restart would fail. Repair the links with: sudo ./nginx-deploy.bash apply --server-name NAME --tls letsencrypt" \
+        "then run: sudo ./nginx-deploy.bash verify" ;;
+  *) banner "NGINX CHECK COULD NOT BE RUN after this pull (exit $rc); nginx is NOT checked" "$out" \
+        "" "Run it by hand before restarting anything: sudo ./nginx-deploy.bash verify" ;;
+esac
+exit 0

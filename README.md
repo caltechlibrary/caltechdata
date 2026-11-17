@@ -37,12 +37,6 @@ We currently deploy CaltechDATA on a m6i.xlarge AWS EC2 instance with Ubuntu
 file](https://github.com/caltechlibrary/cloud-init-examples/blob/main/caltechdata-init.yaml)
 to do most of the initial setup.
 
-### Install NVM
-
-We haven't gotten NVM to install with cloud-init. Run `curl -o-
-https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash`, then
-reboot and type `nvm install 14`
-
 ### Install InvenioRDM
 
 Clone this repository into /Sites, then go to that directory
@@ -52,16 +46,13 @@ invenio-cli install
 invenio-cli services setup --no-demo-data
 ```
 
-You'll need to add .env file to the repository directory, which includes secrets:
+You'll need a .env file in /Sites/caltechdata, which includes secrets.
+Copy [.env.example](.env.example), which documents each variable, and fill in
+the blanks:
 
 ```
-INVENIO_DATACITE_PASSWORD=
-INVENIO_SECRET_KEY=
-INVENIO_S3_ACCESS_KEY_ID=
-INVENIO_S3_SECRET_ACCESS_KEY=
-FLASK_ENV=
-INVENIO_LOGGING_CONSOLE_LEVEL=
-INVENIO_MAIL_PASSWORD=
+cp .env.example .env
+chmod 600 .env
 ```
 
 This configuration uses S3 for storage. You need to change the bucket name with
@@ -86,13 +77,24 @@ pipenv run invenio vocabularies import --vocabulary names --filepath ./vocabular
 You'll need a domain name, and set an A record to point the domain name to your
 AWS instance.
 
-Move nginx.conf to `/etc/nginx/sites-enabled/default`
+Install the nginx configuration with `./nginx-deploy.bash` (see
+`docs/nginx.md`). The configuration is in the `nginx/` directory, which mirrors
+`/etc/nginx`: the site file, the TLS snippets, the log format and
+`redirect-map.conf` (TIND record numbers to RDM identifiers). The script
+checks it with `nginx -t` on a staged copy before changing anything, then
+**links** the files into `/etc/nginx` (so a `git pull` changes what nginx reads)
+and leaves the packaged `/etc/nginx/nginx.conf` alone. After any pull, run
+`sudo ./nginx-deploy.bash verify` before restarting nginx; the post-merge hook
+that `apply` enables does this and warns if it fails. Get the certificate with
+`sudo certbot certonly`, never `certbot --nginx`
+(`docs/Adding-a-Certbot-Hostname.md`): that edits files the script owns.
+`docs/nginx.md` also covers rolling back and a host that still has copies.
 
-Copy redirect-map.conf to `/etc/nginx/`
-
-Get a certificate with `sudo certbot --nginx`
-
-Restart nginx with `sudo service nginx restart`
+Two scripts in `admin/` serve the reboot check: `safe_to_reboot.bash` reports
+whether a reboot is safe (units, a SQL backup, an OpenSearch snapshot, an
+upload in progress) and `caltechdata_down.bash` stops the services in order.
+`check-for-reboot.bash` from the private `admin-shell-scripts` repository calls
+the first; `cloud-init` installs both into `/usr/local/bin`.
 
 ### Systemctl
 
