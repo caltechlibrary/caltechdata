@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "caltechdata-site"
+version = "1.0.0"
+description = "CaltechDATA site customizations (extra views)"
+requires-python = ">=3.12"
+
+[project.entry-points."invenio_base.blueprints"]
+caltechdata_site_views = "caltechdata_site.views:create_blueprint"
+
+[tool.setuptools]
+packages = ["caltechdata_site"]

@@ -15,6 +15,7 @@ dependencies = [
   "python-dotenv>=0.21.0",
   "granian",
   "lxml-html-clean>=0.1.1",
+  "caltechdata-site",
 ]
 
 tests = [
@@ -26,6 +27,10 @@ dev = [
     "flask-debugtoolbar>=0.16.0",
     "pytest-invenio>=3.0.0,<4.0.0",
 ]
+
+[tool.uv.sources]
+# Local package holding site customizations (extra views); see site/.
+caltechdata-site = { path = "site", editable = true }
 
 [tool.uv]
 no-binary-package = [
