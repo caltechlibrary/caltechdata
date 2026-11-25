@@ -1,0 +1,5 @@
+# list of pages:
+- url: /storage
+  title: CaltechDATA Storage
+  description: Information about how files are stored in CaltechDATA.
+  template: storage.html
